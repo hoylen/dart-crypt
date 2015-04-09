@@ -1,0 +1,7 @@
+name: crypt
+version: 0.0.1
+description: One-way string hashing for salted passwords
+dependencies:
+  crypto: any
+dev_dependencies:
+  unittest: any
