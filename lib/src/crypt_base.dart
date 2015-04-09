@@ -8,7 +8,7 @@ import 'package:crypto/crypto.dart';
 
 //----------------------------------------------------------------
 
-class Util_Crypt {
+class Crypt {
   static const int MAX_SHA_SALT_LENGTH = 16;
   static const String SALT_CHARS =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
