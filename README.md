@@ -19,10 +19,10 @@ A simple usage example:
     import 'package:crypt/crypt.dart';
 
     main() {
-      var hash1 = Util_Crypt.sha256("p@ssw0rd"); // default rounds, random salt
-      var hash2 = Util_Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
-      var hash3 = Util_Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop"); // default rounds
-      var hash4 = Util_Crypt.sha256("p@ssw0rd", rounds: 10000, salt: "abcdefghijklmnop");
+      var hash1 = Crypt.sha256("p@ssw0rd"); // default rounds, random salt
+      var hash2 = Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
+      var hash3 = Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop"); // default rounds
+      var hash4 = Crypt.sha256("p@ssw0rd", rounds: 10000, salt: "abcdefghijklmnop");
 
       print(hash1);
       print(hash2);
