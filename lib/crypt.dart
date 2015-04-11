@@ -3,8 +3,8 @@
 
 /// The crypt library.
 ///
-/// This is an awesome library. More dartdocs go here.
-///
+/// One-way string hashing for salted passwords.
+
 library crypt;
 
 // TODO: Export any libraries intended for clients of this package.

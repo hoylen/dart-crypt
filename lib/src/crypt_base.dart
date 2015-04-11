@@ -7,24 +7,48 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 //----------------------------------------------------------------
+/// One-way string hashing for salted passwords.
+///
+/// Use the [sha256] static method to hash a password.
+///
+/// For example:
+///
+///     import 'package:crypt/crypt.dart';
+///
+///     main() {
+///       var hash1 = Crypt.sha256("p@ssw0rd"); // default rounds, random salt
+///       var hash2 = Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
+///       var hash3 = Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop");
+///       var hash4 = Crypt.sha256("p@ssw0rd", rounds: 10000, salt: "abcdefghijklmnop");
+///
+///       print(hash1);
+///       print(hash2);
+///       print(hash3);
+///       print(hash4);
+///     }
+///
+/// Note: some systems might expect the hash value in a different format.
+/// For example, when used as the LDAP _userPassword_ attribute, it needs
+/// to be prefaced with "{crypt}".
+
 
 class Crypt {
-  static const int MAX_SHA_SALT_LENGTH = 16;
-  static const String SALT_CHARS =
+  static const int _MAX_SHA_SALT_LENGTH = 16;
+  static const String _SALT_CHARS =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-  static const int MIN_SHA_ROUNDS =
+  static const int _MIN_SHA_ROUNDS =
       1000; // from the specification: do not change
-  static const int MAX_SHA_ROUNDS =
+  static const int _MAX_SHA_ROUNDS =
       999999999; // from the specification: do not change
 
-  static const int DEFAULT_SHA_ROUNDS =
+  static const int _DEFAULT_SHA_ROUNDS =
       5000; // from the specification: do not change
 
-  static var rnd = new Random();
+  static var _rnd = new Random();
 
   //----------------------------------------------------------------
-  /// Returns the unix crypt using SHA-256
+  /// Returns a hash of the key using SHA-256.
   ///
   /// Implements the SHA-256 password hashing as specified by
   /// "Unix crypt using SHA-256 and SHA-512", by Ulrich Drepper,
@@ -36,7 +60,7 @@ class Crypt {
   /// If [rounds] is not provided, the default of 5000 is used and the rounds
   /// is not explicitly included in the result. Rounds less than 1000 results
   /// in 1000 being used. Rounds greater than 999,999,999 results in
-  /// 999,999,999 being used.
+  /// 999,999,999 being used. These numbers are defined by the specification.
   ///
   /// If the [salt] is not provided, a random 16-character salt is
   /// generated. Otherwise the provided value is used as the salt,
@@ -57,13 +81,13 @@ class Crypt {
     var rounds_is_custom;
     if (rounds == null) {
       rounds_is_custom = false;
-      rounds = DEFAULT_SHA_ROUNDS;
+      rounds = _DEFAULT_SHA_ROUNDS;
     } else {
       rounds_is_custom = true;
-      if (rounds < MIN_SHA_ROUNDS) {
-        rounds = MIN_SHA_ROUNDS;
-      } else if (MAX_SHA_ROUNDS < rounds) {
-        rounds = MAX_SHA_ROUNDS;
+      if (rounds < _MIN_SHA_ROUNDS) {
+        rounds = _MIN_SHA_ROUNDS;
+      } else if (_MAX_SHA_ROUNDS < rounds) {
+        rounds = _MAX_SHA_ROUNDS;
       }
     }
 
@@ -73,14 +97,14 @@ class Crypt {
     if (salt == null) {
       // Generate a random 16-character salt
       salt_bytes = new List<int>();
-      for (var x = 0; x < MAX_SHA_SALT_LENGTH; x++) {
-        salt_bytes.add(SALT_CHARS.codeUnitAt(rnd.nextInt(SALT_CHARS.length)));
+      for (var x = 0; x < _MAX_SHA_SALT_LENGTH; x++) {
+        salt_bytes.add(_SALT_CHARS.codeUnitAt(_rnd.nextInt(_SALT_CHARS.length)));
       }
       salt = new String.fromCharCodes(salt_bytes);
     } else {
       // Use provided salt (up to the maximum required length)
-      if (MAX_SHA_SALT_LENGTH < salt.length) {
-        salt = salt.substring(0, MAX_SHA_SALT_LENGTH);
+      if (_MAX_SHA_SALT_LENGTH < salt.length) {
+        salt = salt.substring(0, _MAX_SHA_SALT_LENGTH);
       }
       salt_bytes = new List<int>.from(salt.codeUnits);
     }
