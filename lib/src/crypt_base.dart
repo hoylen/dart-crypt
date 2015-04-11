@@ -30,6 +30,9 @@ import 'package:crypto/crypto.dart';
 /// Note: some systems might expect the hash value in a different format.
 /// For example, when used as the LDAP _userPassword_ attribute, it needs
 /// to be prefaced with "{crypt}".
+/// 
+/// The [hashCode] method has nothing to do with the crypt hashes. It is
+/// inherited from the Dart object.
 
 
 class Crypt {

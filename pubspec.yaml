@@ -2,7 +2,6 @@ name: crypt
 version: 0.0.1
 description: One-way string hashing for salted passwords
 homepage: https://github.com/hoylen/dart-crypt
-documentation:
 author: Hoylen Sue <hoylen@hoylen.com>
 dependencies:
   crypto: ">=0.9.0 <0.10.0"
