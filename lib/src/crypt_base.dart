@@ -1,10 +1,10 @@
-// Copyright (c) 2015, Hoylen Sue. All rights reserved. Use of this source code
+// Copyright (c) 2015, 2016, Hoylen Sue. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
 library crypt.base;
 
 import 'dart:math';
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' as Crypto;
 
 //----------------------------------------------------------------
 /// One-way string hashing for salted passwords.
@@ -30,23 +30,25 @@ import 'package:crypto/crypto.dart';
 /// Note: some systems might expect the hash value in a different format.
 /// For example, when used as the LDAP _userPassword_ attribute, it needs
 /// to be prefaced with "{crypt}".
-/// 
+///
 /// The [hashCode] method has nothing to do with the crypt hashes. It is
 /// inherited from the Dart object.
-
 
 class Crypt {
   static const int _MAX_SHA_SALT_LENGTH = 16;
   static const String _SALT_CHARS =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-  static const int _MIN_SHA_ROUNDS =
-      1000; // from the specification: do not change
-  static const int _MAX_SHA_ROUNDS =
-      999999999; // from the specification: do not change
+  static const int _MIN_SHA_ROUNDS = 1000;
 
-  static const int _DEFAULT_SHA_ROUNDS =
-      5000; // from the specification: do not change
+  // from the specification: do not change
+  static const int _MAX_SHA_ROUNDS = 999999999;
+
+  // from the specification: do not change
+
+  static const int _DEFAULT_SHA_ROUNDS = 5000;
+
+  // from the specification: do not change
 
   static var _rnd = new Random();
 
@@ -101,7 +103,8 @@ class Crypt {
       // Generate a random 16-character salt
       salt_bytes = new List<int>();
       for (var x = 0; x < _MAX_SHA_SALT_LENGTH; x++) {
-        salt_bytes.add(_SALT_CHARS.codeUnitAt(_rnd.nextInt(_SALT_CHARS.length)));
+        salt_bytes
+            .add(_SALT_CHARS.codeUnitAt(_rnd.nextInt(_SALT_CHARS.length)));
       }
       salt = new String.fromCharCodes(salt_bytes);
     } else {
@@ -116,42 +119,42 @@ class Crypt {
     //
     // The steps below refer to the numbered steps from the specification.
 
-    var digest_a = new SHA256(); // Step 1
-    digest_a.add(value_bytes); // Step 2
-    digest_a.add(salt_bytes); // Step 3
+    List<int> data_a = []; // Step 1
+    data_a.addAll(value_bytes); // Step 2
+    data_a.addAll(salt_bytes); // Step 3
 
-    var digest_b = new SHA256(); // Step 4
-    digest_b.add(value_bytes); // Step 5
-    digest_b.add(salt_bytes); // Step 6
-    digest_b.add(value_bytes); // Step 7
-    var alt_bytes = digest_b.close(); // Step 8
+    List<int> data_b = []; // Step 4
+    data_b.addAll(value_bytes); // Step 5
+    data_b.addAll(salt_bytes); // Step 6
+    data_b.addAll(value_bytes); // Step 7
+    var alt_bytes = Crypto.sha256.convert(data_b).bytes; // Step 8
 
     var count = key.length;
     while (32 <= count) {
-      digest_a.add(alt_bytes);
+      data_a.addAll(alt_bytes);
       count -= 32;
     }
     if (0 < count) {
-      digest_a.add(alt_bytes.sublist(0, count)); // Step 10
+      data_a.addAll(alt_bytes.sublist(0, count)); // Step 10
     }
 
     // Step 11
 
     for (var bits = key.length; bits != 0; bits >>= 1) {
       if (bits & 0x01 != 0) {
-        digest_a.add(alt_bytes);
+        data_a.addAll(alt_bytes);
       } else {
-        digest_a.add(value_bytes);
+        data_a.addAll(value_bytes);
       }
     }
 
-    var digest_a_bytes = digest_a.close(); // Step 12
+    var digest_a_bytes = Crypto.sha256.convert(data_a).bytes; // Step 12
 
-    var dp = new SHA256(); // Step 13
+    var data_dp = []; // Step 13
     for (int x = 0; x < key.length; x++) {
-      dp.add(value_bytes); // Step 14
+      data_dp.addAll(value_bytes); // Step 14
     }
-    var dp_bytes = dp.close(); // Step 15
+    var dp_bytes = Crypto.sha256.convert(data_dp).bytes; // Step 15
 
     // Step 16
 
@@ -166,13 +169,13 @@ class Crypt {
       p.addAll(dp_bytes.sublist(0, count));
     }
 
-    var ds = new SHA256(); // Step 17
+    var data_ds = []; // Step 17
     var a0 = digest_a_bytes[0];
     assert(0 <= a0 && a0 < 256);
     for (int x = 0; x < 16 + a0; x++) {
-      ds.add(salt_bytes);
+      data_ds.addAll(salt_bytes);
     }
-    var ds_bytes = ds.close(); // Step 19
+    var ds_bytes = Crypto.sha256.convert(data_ds).bytes; // Step 19
 
     // Step 20
 
@@ -191,28 +194,28 @@ class Crypt {
 
     var running = digest_a_bytes;
     for (int r = 0; r < rounds; r++) {
-      var c = new SHA256();
+      var data_c = [];
 
       if ((r % 2) == 1) {
-        c.add(p);
+        data_c.addAll(p);
       } else {
-        c.add(running);
+        data_c.addAll(running);
       }
 
       if ((r % 3) != 0) {
-        c.add(s);
+        data_c.addAll(s);
       }
       if ((r % 7) != 0) {
-        c.add(p);
+        data_c.addAll(p);
       }
 
       if ((r % 2) == 1) {
-        c.add(running);
+        data_c.addAll(running);
       } else {
-        c.add(p);
+        data_c.addAll(p);
       }
 
-      running = c.close();
+      running = Crypto.sha256.convert(data_c).bytes;
     }
 
     // Return the crypt formatted result
@@ -263,6 +266,59 @@ class Crypt {
       w >>= 6;
     }
   }
-}
 
-//EOF
+  //----------------------------------------------------------------
+  /// Tests if a value hashes to the same hash.
+  ///
+  /// Returns true if the hash of the [value] matches the [hash], otherwise
+  /// false.
+
+  static bool compare(String hash, String value) {
+    var parts = hash.split(r"$");
+    if ((parts.length == 4 || parts.length == 5) && parts[0].isEmpty) {
+      if (parts[1] == "5") {
+        // SHA-256
+
+        // Get the rounds (if any)
+
+        var rounds; // null means uses default rounds
+        if (parts.length == 5) {
+          // Parse explicitly specified rounds
+          var roundsStr = "rounds=";
+          if (!parts[2].startsWith(roundsStr)) {
+            return false; // bad syntax in rounds field
+          }
+          try {
+            rounds = int.parse(parts[2].substring(roundsStr.length));
+          } on FormatException catch (_) {
+            return false;
+          }
+          if (rounds < _MIN_SHA_ROUNDS || _MAX_SHA_ROUNDS < rounds) {
+            return false;
+          }
+        }
+
+        // Get the salt
+
+        var salt = parts[parts.length - 2];
+        if (_MAX_SHA_SALT_LENGTH < salt.length) {
+          return false; // onvalid salt length
+        }
+
+        // Compare
+
+        var valueHash = Crypt.sha256(value, rounds: rounds, salt: salt);
+
+        var match = true;
+        for (var i = 0; i < min(hash.length, valueHash.length); i++) {
+          if (hash.codeUnitAt(i) != valueHash.codeUnitAt(i)) {
+            match = false; // do not break: constant time implementation
+          }
+        }
+
+        return match;
+      }
+    }
+    return false;
+  }
+}

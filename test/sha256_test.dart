@@ -95,6 +95,19 @@ Future main() async {
     });
 
     //----------------
+    // Compare
+
+    test("compare", () {
+      var secret = "p@ssw0rd";
+      expect(Crypt.compare(Crypt.sha256(secret), secret), isTrue);
+      expect(Crypt.compare(Crypt.sha256(secret), "!" + secret), isFalse);
+      expect(Crypt.compare(Crypt.sha256(secret, rounds: 1000), secret), isTrue);
+      expect(Crypt.compare(Crypt.sha256(secret, rounds: 1000), "!" + secret), isFalse);
+      expect(Crypt.compare(Crypt.sha256(secret, salt: ""), secret), isTrue); // empty salt
+
+    });
+
+    //----------------
     // Warning: maximum rounds takes about 2 hours 48 minutes to run (on a 2 GHz Intel Core i7).
     // So it is normally not executed.
 
