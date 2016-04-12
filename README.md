@@ -72,8 +72,10 @@ Test if a value's hash matches using the [match] method.
 
 ## Features and bugs
 
-Currently only SHA-256 crypt hashes has been implemented. This package
-uses the [crypto package][crypto] which does not yet support SHA-512.
+Currently only SHA-256 crypt hashes are supported.  This package uses
+the [crypto package][crypto] for the cryptographic algorithms, which
+does not yet support DES or SHA-512. So those types of crypt hashes
+are not supported.
 
 Salt generation does not use a cryptographically secure random number
 generator. If this is a concern, pass in a randomly generated salt
