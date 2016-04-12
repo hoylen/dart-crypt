@@ -1,5 +1,5 @@
 name: crypt
-version: 1.0.1
+version: 1.0.2
 description: One-way string hashing for salted passwords using the Unix crypt format
 homepage: https://github.com/hoylen/dart-crypt
 author: Hoylen Sue <hoylen@hoylen.com>

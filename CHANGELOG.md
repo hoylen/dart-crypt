@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Fixed parsing bug.
+
 ## 1.0.1
 
 - Co-exist with other packages that depend on version 0.x.x of crypto.

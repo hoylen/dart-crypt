@@ -133,13 +133,13 @@ class Crypt {
           var roundsStr = "rounds=";
           if (!parts[2].startsWith(roundsStr)) {
             throw new FormatException(
-                "Crypt string invalid: rounds: ${parts[2]}");
+                "Crypt string invalid rounds: ${parts[2]}");
           }
           try {
             _rounds = int.parse(parts[2].substring(roundsStr.length));
           } on FormatException catch (_) {
             throw new FormatException(
-                "Crypt string invalid: rounds: ${parts[2]}");
+                "Crypt string invalid rounds: ${parts[2]}");
           }
           if (_rounds < _MIN_SHA_ROUNDS || _MAX_SHA_ROUNDS < _rounds) {
             throw new RangeError(
@@ -158,16 +158,16 @@ class Crypt {
 
         // Get the hash
 
-        _hash = parts[parts.length];
-        if (_hash.length != 40) {
-          throw new FormatException("Crypt string unexpected hash length");
+        _hash = parts[parts.length - 1];
+        if (_hash.isEmpty) {
+          throw new FormatException("Crypt string is empty");
         }
       } else {
         throw new FormatException(
             "Crypt string: unsupported algorithm: ${parts[1]}");
       }
     } else {
-      throw new FormatException("Crypt string: invalid format");
+      throw new FormatException("Crypt string invalid format");
     }
   }
 

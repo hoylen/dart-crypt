@@ -128,6 +128,27 @@ Future main() async {
     //----------------
     // Compare
 
+    test("parsing crypt format strings", () {
+      var a = new Crypt(
+          r"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5");
+
+      expect(a.type, equals(Crypt.ID_SHA256));
+      expect(a.rounds, isNull);
+      expect(a.salt, equals("saltstring"));
+      expect(a.hash, equals("5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5"));
+
+      a = new Crypt(
+          r"$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+
+      expect(a.type, equals(Crypt.ID_SHA256));
+      expect(a.rounds, equals(10000));
+      expect(a.salt, equals("saltstringsaltst"));
+      expect(a.hash, equals("3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA"));
+    });
+
+    //----------------
+    // Compare
+
     test("compare", () {
       var secret = "p@ssw0rd";
 
@@ -178,5 +199,3 @@ Future main() async {
     });
   });
 }
-
-//EOF
