@@ -7,31 +7,24 @@ import 'dart:math';
 import 'package:crypto/crypto.dart' as Crypto;
 
 //----------------------------------------------------------------
-/// One-way string hashing for salted passwords.
+/// One-way string hashing for salted passwords using the Unix crypt format.
 ///
-/// Use the [sha256] static method to hash a password.
+/// This class implements the SHA-256 crypt hash as specified by "[Unix crypt
+/// using SHA-256 and SHA-512](http://www.akkadia.org/drepper/SHA-crypt.txt)"
+/// (version: 0.42008-04-03).
 ///
-/// For example:
+/// ## Usage
 ///
-///     import 'package:crypt/crypt.dart';
+/// Construct a Crypt object using the [sha256] constructor or by parsing a
+/// crypt format string using the default constructor.
 ///
-///     main() {
-///       var hash1 = Crypt.sha256("p@ssw0rd"); // default rounds, random salt
-///       var hash2 = Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
-///       var hash3 = Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop");
-///       var hash4 = Crypt.sha256("p@ssw0rd", rounds: 10000, salt: "abcdefghijklmnop");
+/// The crypt format string value is obtained by using the [toString] method.
 ///
-///       print(hash1);
-///       print(hash2);
-///       print(hash3);
-///       print(hash4);
-///     }
+/// Test if a value's hash matches using the [match] method.
 ///
-/// Note: some systems might expect the hash value in a different format.
-/// For example, when used as the LDAP _userPassword_ attribute, it needs
-/// to be prefaced with "{crypt}".
+/// See <https://pub.dartlang.org/packages/crypt> for an example.
 ///
-/// The [hashCode] method has nothing to do with the crypt hashes. It is
+/// Note: The [hashCode] method has nothing to do with the crypt hashes. It is
 /// inherited from the Dart object.
 
 class Crypt {
@@ -48,12 +41,138 @@ class Crypt {
 
   static const int _DEFAULT_SHA_ROUNDS = 5000;
 
-  // from the specification: do not change
+  // Random number generator used for generating salts
 
   static var _rnd = new Random();
 
+  // from the specification: do not change
+  /*
+  static const String ID_MD5 = "1";
+  static const String ID_BLOWFISH = "2a";
+  static const String ID_SUN_MD5 = "md5";
+  */
+  static const String ID_SHA256 = "5";
+  //static const String ID_SHA512 = "6";
+
   //----------------------------------------------------------------
-  /// Returns a hash of the key using SHA-256.
+
+  /// Algorithm used by the crypt.
+  ///
+  /// Allowed values: [TYPE_SHA256].
+
+  String get type => _type;
+  String _type;
+
+  /// Number of rounds or null.
+  ///
+  /// Null means the default number of rounds. When this is null, the number
+  /// of rounds is not explicitly included in the crypt formatted string.
+
+  int get rounds => _rounds;
+  int _rounds;
+
+  /// The salt value.
+
+  String get salt => _salt;
+  String _salt;
+
+  /// The hash value.
+
+  String get hash => _hash;
+  String _hash;
+
+  //----------------------------------------------------------------
+  /// Equality operator
+  ///
+  /// Returns true if both crypts are the same. That is, uses the same
+  /// algorithm, the same rounds, the same salt and has the same hash.
+  ///
+  /// If one crypt uses the default number of rounds for the algorithm
+  /// (i.e. [rounds] is null) and the other crypt explicitly specifies the
+  /// number of rounds, the rounds are considered the same if their numeric
+  /// values are the same.
+
+  bool operator ==(Crypt that) {
+    if (this._type == that._type) {
+      var defaultRounds;
+      switch (this._type) {
+        case ID_SHA256:
+          defaultRounds = _DEFAULT_SHA_ROUNDS;
+          break;
+        default:
+          return false;
+      }
+      var r1 = this._rounds ?? defaultRounds;
+      var r2 = that._rounds ?? defaultRounds;
+
+      return (r1 == r2 && this._salt == that._salt && this._hash == that._hash);
+    }
+    return false;
+  }
+
+  //----------------------------------------------------------------
+  /// Constructor from a crypt format string.
+  ///
+  /// Produce a [Crypt] object from parsing a crypt format string.
+  ///
+  /// Throws [FormatException] or [RangeError] if the crypt format string is
+  /// incorrect.
+
+  Crypt(String cryptFormatStr) {
+    var parts = cryptFormatStr.split(r"$");
+    if ((parts.length == 4 || parts.length == 5) && parts[0].isEmpty) {
+      _type = parts[1];
+
+      if (_type == ID_SHA256) {
+        // SHA-256
+
+        // Get the rounds (if any)
+
+        if (parts.length == 5) {
+          // Parse explicitly specified rounds
+          var roundsStr = "rounds=";
+          if (!parts[2].startsWith(roundsStr)) {
+            throw new FormatException(
+                "Crypt string invalid: rounds: ${parts[2]}");
+          }
+          try {
+            _rounds = int.parse(parts[2].substring(roundsStr.length));
+          } on FormatException catch (_) {
+            throw new FormatException(
+                "Crypt string invalid: rounds: ${parts[2]}");
+          }
+          if (_rounds < _MIN_SHA_ROUNDS || _MAX_SHA_ROUNDS < _rounds) {
+            throw new RangeError(
+                "Crypt string rounds out of range: ${_rounds}");
+          }
+        } else {
+          _rounds = null; // default rounds
+        }
+
+        // Get the salt
+
+        _salt = parts[parts.length - 2];
+        if (_MAX_SHA_SALT_LENGTH < salt.length) {
+          throw new FormatException("Crypt string unexpected salt length");
+        }
+
+        // Get the hash
+
+        _hash = parts[parts.length];
+        if (_hash.length != 40) {
+          throw new FormatException("Crypt string unexpected hash length");
+        }
+      } else {
+        throw new FormatException(
+            "Crypt string: unsupported algorithm: ${parts[1]}");
+      }
+    } else {
+      throw new FormatException("Crypt string: invalid format");
+    }
+  }
+
+  //----------------------------------------------------------------
+  /// Constructor using the SHA-256 algorithm.
   ///
   /// Implements the SHA-256 password hashing as specified by
   /// "Unix crypt using SHA-256 and SHA-512", by Ulrich Drepper,
@@ -74,7 +193,7 @@ class Crypt {
   /// are not recommended, since they reduce the security of the
   /// generated hash.
 
-  static String sha256(String key, {int rounds, String salt}) {
+  Crypt.sha256(String key, {int rounds, String salt}) {
     if (key == null) {
       key = ""; // to avoid raising an error
     }
@@ -221,12 +340,6 @@ class Crypt {
     // Return the crypt formatted result
 
     var result = new StringBuffer();
-    result.write(r"$5$");
-    if (rounds_is_custom) {
-      result.write("rounds=${rounds}\$");
-    }
-    result.write(salt);
-    result.write("\$");
 
     _encode_3bytes(result, running[0], running[10], running[20]);
     _encode_3bytes(result, running[21], running[1], running[11]);
@@ -240,7 +353,10 @@ class Crypt {
     _encode_3bytes(result, running[9], running[19], running[29]);
     _encode_3bytes(result, running[31], running[30]);
 
-    return result.toString();
+    this._type = ID_SHA256;
+    this._rounds = (rounds_is_custom) ? rounds : null;
+    this._salt = salt;
+    this._hash = result.toString();
   }
 
   static const String _64_ENCODING_CHARS =
@@ -267,58 +383,41 @@ class Crypt {
     }
   }
 
+  //================================================================
+
+  /// Crypt format string.
+  ///
+  /// For example, returns a string like:
+  ///
+  ///     $5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5
+  ///
+  /// Note: some systems might expect the crypt format string to be represented
+  /// slightly differently.  For example, when used as the LDAP _userPassword_
+  /// attribute, it needs to be prepended with "{crypt}".
+
+  String toString() {
+    var r = (_rounds != null) ? "rounds=$_rounds\$" : "";
+    return "\$$_type\$$r$_salt\$$_hash";
+  }
+
   //----------------------------------------------------------------
   /// Tests if a value hashes to the same hash.
   ///
-  /// Returns true if the hash of the [value] matches the [hash], otherwise
-  /// false.
+  /// Returns true if the hash of the [value] matches this crypt hash. Otherwise
+  /// false is returned.
 
-  static bool compare(String hash, String value) {
-    var parts = hash.split(r"$");
-    if ((parts.length == 4 || parts.length == 5) && parts[0].isEmpty) {
-      if (parts[1] == "5") {
-        // SHA-256
-
-        // Get the rounds (if any)
-
-        var rounds; // null means uses default rounds
-        if (parts.length == 5) {
-          // Parse explicitly specified rounds
-          var roundsStr = "rounds=";
-          if (!parts[2].startsWith(roundsStr)) {
-            return false; // bad syntax in rounds field
-          }
-          try {
-            rounds = int.parse(parts[2].substring(roundsStr.length));
-          } on FormatException catch (_) {
-            return false;
-          }
-          if (rounds < _MIN_SHA_ROUNDS || _MAX_SHA_ROUNDS < rounds) {
-            return false;
-          }
-        }
-
-        // Get the salt
-
-        var salt = parts[parts.length - 2];
-        if (_MAX_SHA_SALT_LENGTH < salt.length) {
-          return false; // onvalid salt length
-        }
-
-        // Compare
-
-        var valueHash = Crypt.sha256(value, rounds: rounds, salt: salt);
-
-        var match = true;
-        for (var i = 0; i < min(hash.length, valueHash.length); i++) {
-          if (hash.codeUnitAt(i) != valueHash.codeUnitAt(i)) {
-            match = false; // do not break: constant time implementation
-          }
-        }
-
-        return match;
-      }
+  bool match(String value) {
+    // Hash the value using the same parameters
+    var that;
+    switch (this._type) {
+      case ID_SHA256:
+        that = new Crypt.sha256(value, rounds: this._rounds, salt: this._salt);
+        break;
+      default:
+        throw new StateError("Crypt: invalid algorithm: ${_type}");
     }
-    return false;
+
+    // Compare the two
+    return (this == that);
   }
 }
