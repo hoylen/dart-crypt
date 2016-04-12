@@ -30,7 +30,7 @@ import 'package:crypt/crypt.dart';
 main() {
   var c1 = new Crypt.sha256("p@ssw0rd"); // default rounds, random salt
   var c2 = new Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
-  var c3 = new Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop"); // default rounds
+  var c3 = new Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop");//default rounds
   var c4 = new Crypt.sha256("p@ssw0rd", rounds: 10000, salt:"abcdefghijklmnop");
 
   print(c1.toString());
