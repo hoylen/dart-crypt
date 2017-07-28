@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.4
+
+- Updated dependency to allow usage of crypto verson 2.0.2.
+
+## 1.0.3
+
+- Make compatible with Angular 2 version 3.1.
+
 ## 1.0.2
 
 - Fixed parsing bug.
