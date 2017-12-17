@@ -1,15 +1,17 @@
-// Copyright (c) 2015, 2016, Hoylen Sue. All rights reserved. Use of this source code
+// Copyright (c) 2015, 2016, 2017, Hoylen Sue. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
 library crypt.example;
 
 import 'package:crypt/crypt.dart';
 
-main() {
-  var c1 = new Crypt.sha256("p@ssw0rd"); // default rounds, random salt
-  var c2 = new Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
-  var c3 = new Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop"); // default rounds
-  var c4 = new Crypt.sha256("p@ssw0rd", rounds: 10000, salt:"abcdefghijklmnop");
+void main() {
+  final c1 = new Crypt.sha256("p@ssw0rd"); // default rounds, random salt
+  final c2 = new Crypt.sha256("p@ssw0rd", rounds: 10000); // random salt
+  final c3 =
+      new Crypt.sha256("p@ssw0rd", salt: "abcdefghijklmnop"); // default rounds
+  final c4 =
+      new Crypt.sha256("p@ssw0rd", rounds: 10000, salt: "abcdefghijklmnop");
 
   print(c1.toString());
   print(c2.toString());

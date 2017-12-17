@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+- Code made sound to support Dart strong mode.
+
 ## 1.0.4
 
 - Updated dependency to allow usage of crypto verson 2.0.2.

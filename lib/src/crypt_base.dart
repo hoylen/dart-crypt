@@ -1,16 +1,16 @@
-// Copyright (c) 2015, 2016, Hoylen Sue. All rights reserved. Use of this source code
+// Copyright (c) 2015, 2016, 2017, Hoylen Sue. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
 library crypt.base;
 
 import 'dart:math';
-import 'package:crypto/crypto.dart' as Crypto;
+import 'package:crypto/crypto.dart' as crypto;
 
 //----------------------------------------------------------------
 /// One-way string hashing for salted passwords using the Unix crypt format.
 ///
-/// This class implements the SHA-256 crypt hash as specified by "[Unix crypt
-/// using SHA-256 and SHA-512](http://www.akkadia.org/drepper/SHA-crypt.txt)"
+/// This class implements the SHA-256 crypt hash as specified by "Unix crypt
+/// using SHA-256 and SHA-512 [ref](http://www.akkadia.org/drepper/SHA-crypt.txt)"
 /// (version: 0.42008-04-03).
 ///
 /// ## Usage
@@ -28,22 +28,22 @@ import 'package:crypto/crypto.dart' as Crypto;
 /// inherited from the Dart object.
 
 class Crypt {
-  static const int _MAX_SHA_SALT_LENGTH = 16;
-  static const String _SALT_CHARS =
+  static const int _maxShaSaltLength = 16;
+  static const String _saltChars =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-  static const int _MIN_SHA_ROUNDS = 1000;
+  static const int _minShaRounds = 1000;
 
   // from the specification: do not change
-  static const int _MAX_SHA_ROUNDS = 999999999;
+  static const int _maxShaRounds = 999999999;
 
   // from the specification: do not change
 
-  static const int _DEFAULT_SHA_ROUNDS = 5000;
+  static const int _defaultShaRounds = 5000;
 
   // Random number generator used for generating salts
 
-  static var _rnd = new Random();
+  static final _rnd = new Random();
 
   // from the specification: do not change
   /*
@@ -51,14 +51,14 @@ class Crypt {
   static const String ID_BLOWFISH = "2a";
   static const String ID_SUN_MD5 = "md5";
   */
-  static const String ID_SHA256 = "5";
+  static const String idSha256 = "5";
   //static const String ID_SHA512 = "6";
 
   //----------------------------------------------------------------
 
   /// Algorithm used by the crypt.
   ///
-  /// Allowed values: [TYPE_SHA256].
+  /// Allowed values: [idSha256].
 
   String get type => _type;
   String _type;
@@ -92,22 +92,29 @@ class Crypt {
   /// number of rounds, the rounds are considered the same if their numeric
   /// values are the same.
 
-  bool operator ==(Crypt that) {
-    if (this._type == that._type) {
-      var defaultRounds;
-      switch (this._type) {
-        case ID_SHA256:
-          defaultRounds = _DEFAULT_SHA_ROUNDS;
-          break;
-        default:
-          return false;
-      }
-      var r1 = this._rounds ?? defaultRounds;
-      var r2 = that._rounds ?? defaultRounds;
+  @override
+  bool operator ==(Object that) {
+    if (that is Crypt) {
+      if (this._type == that._type) {
+        int defaultRounds;
+        switch (this._type) {
+          case idSha256:
+            defaultRounds = _defaultShaRounds;
+            break;
+          default:
+            return false;
+        }
+        final r1 = this._rounds ?? defaultRounds;
+        final r2 = that._rounds ?? defaultRounds;
 
-      return (r1 == r2 && this._salt == that._salt && this._hash == that._hash);
+        return (r1 == r2 &&
+            this._salt == that._salt &&
+            this._hash == that._hash);
+      }
+      return false;
+    } else {
+      return false;
     }
-    return false;
   }
 
   //----------------------------------------------------------------
@@ -119,18 +126,18 @@ class Crypt {
   /// incorrect.
 
   Crypt(String cryptFormatStr) {
-    var parts = cryptFormatStr.split(r"$");
+    final parts = cryptFormatStr.split(r"$");
     if ((parts.length == 4 || parts.length == 5) && parts[0].isEmpty) {
       _type = parts[1];
 
-      if (_type == ID_SHA256) {
+      if (_type == idSha256) {
         // SHA-256
 
         // Get the rounds (if any)
 
         if (parts.length == 5) {
           // Parse explicitly specified rounds
-          var roundsStr = "rounds=";
+          final roundsStr = "rounds=";
           if (!parts[2].startsWith(roundsStr)) {
             throw new FormatException(
                 "Crypt string invalid rounds: ${parts[2]}");
@@ -141,7 +148,7 @@ class Crypt {
             throw new FormatException(
                 "Crypt string invalid rounds: ${parts[2]}");
           }
-          if (_rounds < _MIN_SHA_ROUNDS || _MAX_SHA_ROUNDS < _rounds) {
+          if (_rounds < _minShaRounds || _maxShaRounds < _rounds) {
             throw new RangeError(
                 "Crypt string rounds out of range: ${_rounds}");
           }
@@ -152,22 +159,22 @@ class Crypt {
         // Get the salt
 
         _salt = parts[parts.length - 2];
-        if (_MAX_SHA_SALT_LENGTH < salt.length) {
-          throw new FormatException("Crypt string unexpected salt length");
+        if (_maxShaSaltLength < salt.length) {
+          throw const FormatException("Crypt string unexpected salt length");
         }
 
         // Get the hash
 
         _hash = parts[parts.length - 1];
         if (_hash.isEmpty) {
-          throw new FormatException("Crypt string is empty");
+          throw const FormatException("Crypt string is empty");
         }
       } else {
         throw new FormatException(
             "Crypt string: unsupported algorithm: ${parts[1]}");
       }
     } else {
-      throw new FormatException("Crypt string invalid format");
+      throw const FormatException("Crypt string invalid format");
     }
   }
 
@@ -194,42 +201,39 @@ class Crypt {
   /// generated hash.
 
   Crypt.sha256(String key, {int rounds, String salt}) {
-    if (key == null) {
-      key = ""; // to avoid raising an error
-    }
+    key ??= ""; // to avoid raising an error
 
-    var value_bytes = new List<int>.from(key.codeUnits);
+    final value_bytes = new List<int>.from(key.codeUnits);
 
     // Determine the number of rounds to use
 
-    var rounds_is_custom;
+    bool rounds_is_custom;
     if (rounds == null) {
       rounds_is_custom = false;
-      rounds = _DEFAULT_SHA_ROUNDS;
+      rounds = _defaultShaRounds;
     } else {
       rounds_is_custom = true;
-      if (rounds < _MIN_SHA_ROUNDS) {
-        rounds = _MIN_SHA_ROUNDS;
-      } else if (_MAX_SHA_ROUNDS < rounds) {
-        rounds = _MAX_SHA_ROUNDS;
+      if (rounds < _minShaRounds) {
+        rounds = _minShaRounds;
+      } else if (_maxShaRounds < rounds) {
+        rounds = _maxShaRounds;
       }
     }
 
     // Obtain salt to use
 
-    var salt_bytes;
+    List<int> salt_bytes;
     if (salt == null) {
       // Generate a random 16-character salt
-      salt_bytes = new List<int>();
-      for (var x = 0; x < _MAX_SHA_SALT_LENGTH; x++) {
-        salt_bytes
-            .add(_SALT_CHARS.codeUnitAt(_rnd.nextInt(_SALT_CHARS.length)));
+      salt_bytes = <int>[];
+      for (var x = 0; x < _maxShaSaltLength; x++) {
+        salt_bytes.add(_saltChars.codeUnitAt(_rnd.nextInt(_saltChars.length)));
       }
       salt = new String.fromCharCodes(salt_bytes);
     } else {
       // Use provided salt (up to the maximum required length)
-      if (_MAX_SHA_SALT_LENGTH < salt.length) {
-        salt = salt.substring(0, _MAX_SHA_SALT_LENGTH);
+      if (_maxShaSaltLength < salt.length) {
+        salt = salt.substring(0, _maxShaSaltLength);
       }
       salt_bytes = new List<int>.from(salt.codeUnits);
     }
@@ -238,15 +242,15 @@ class Crypt {
     //
     // The steps below refer to the numbered steps from the specification.
 
-    List<int> data_a = []; // Step 1
+    final data_a = <int>[]; // Step 1
     data_a.addAll(value_bytes); // Step 2
     data_a.addAll(salt_bytes); // Step 3
 
-    List<int> data_b = []; // Step 4
+    final data_b = <int>[]; // Step 4
     data_b.addAll(value_bytes); // Step 5
     data_b.addAll(salt_bytes); // Step 6
     data_b.addAll(value_bytes); // Step 7
-    var alt_bytes = Crypto.sha256.convert(data_b).bytes; // Step 8
+    final alt_bytes = crypto.sha256.convert(data_b).bytes; // Step 8
 
     var count = key.length;
     while (32 <= count) {
@@ -267,17 +271,17 @@ class Crypt {
       }
     }
 
-    var digest_a_bytes = Crypto.sha256.convert(data_a).bytes; // Step 12
+    final digest_a_bytes = crypto.sha256.convert(data_a).bytes; // Step 12
 
-    var data_dp = []; // Step 13
-    for (int x = 0; x < key.length; x++) {
+    final data_dp = <int>[]; // Step 13
+    for (var x = 0; x < key.length; x++) {
       data_dp.addAll(value_bytes); // Step 14
     }
-    var dp_bytes = Crypto.sha256.convert(data_dp).bytes; // Step 15
+    final dp_bytes = crypto.sha256.convert(data_dp).bytes; // Step 15
 
     // Step 16
 
-    var p = new List<int>();
+    final p = <int>[];
 
     count = key.length;
     while (32 <= count) {
@@ -288,17 +292,17 @@ class Crypt {
       p.addAll(dp_bytes.sublist(0, count));
     }
 
-    var data_ds = []; // Step 17
-    var a0 = digest_a_bytes[0];
+    final data_ds = <int>[]; // Step 17
+    final a0 = digest_a_bytes[0];
     assert(0 <= a0 && a0 < 256);
-    for (int x = 0; x < 16 + a0; x++) {
+    for (var x = 0; x < 16 + a0; x++) {
       data_ds.addAll(salt_bytes);
     }
-    var ds_bytes = Crypto.sha256.convert(data_ds).bytes; // Step 19
+    final ds_bytes = crypto.sha256.convert(data_ds).bytes; // Step 19
 
     // Step 20
 
-    var s = new List<int>();
+    final s = <int>[];
 
     count = salt.length;
     while (32 <= count) {
@@ -312,8 +316,8 @@ class Crypt {
     // Step 21
 
     var running = digest_a_bytes;
-    for (int r = 0; r < rounds; r++) {
-      var data_c = [];
+    for (var r = 0; r < rounds; r++) {
+      final data_c = <int>[];
 
       if ((r % 2) == 1) {
         data_c.addAll(p);
@@ -334,12 +338,12 @@ class Crypt {
         data_c.addAll(p);
       }
 
-      running = Crypto.sha256.convert(data_c).bytes;
+      running = crypto.sha256.convert(data_c).bytes;
     }
 
     // Return the crypt formatted result
 
-    var result = new StringBuffer();
+    final result = new StringBuffer();
 
     _encode_3bytes(result, running[0], running[10], running[20]);
     _encode_3bytes(result, running[21], running[1], running[11]);
@@ -353,19 +357,19 @@ class Crypt {
     _encode_3bytes(result, running[9], running[19], running[29]);
     _encode_3bytes(result, running[31], running[30]);
 
-    this._type = ID_SHA256;
+    this._type = idSha256;
     this._rounds = (rounds_is_custom) ? rounds : null;
     this._salt = salt;
     this._hash = result.toString();
   }
 
-  static const String _64_ENCODING_CHARS =
+  static const String _base64EncodingChars =
       "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
   // Custom encoding of 3 bytes into 4 characters used by the SHA-256 crypt hash.
 
   static void _encode_3bytes(StringBuffer result, int b2, int b1, [int b0]) {
-    var n;
+    int n;
     if (b0 != null) {
       n = 4;
     } else {
@@ -377,8 +381,8 @@ class Crypt {
 
     var w = (b2 << 16) | (b1 << 8) | (b0);
     while (0 < n--) {
-      var value = w & 0x3F;
-      result.write(_64_ENCODING_CHARS.substring(value, value + 1));
+      final value = w & 0x3F;
+      result.write(_base64EncodingChars.substring(value, value + 1));
       w >>= 6;
     }
   }
@@ -395,8 +399,9 @@ class Crypt {
   /// slightly differently.  For example, when used as the LDAP _userPassword_
   /// attribute, it needs to be prepended with "{crypt}".
 
+  @override
   String toString() {
-    var r = (_rounds != null) ? "rounds=$_rounds\$" : "";
+    final r = (_rounds != null) ? "rounds=$_rounds\$" : "";
     return "\$$_type\$$r$_salt\$$_hash";
   }
 
@@ -408,9 +413,10 @@ class Crypt {
 
   bool match(String value) {
     // Hash the value using the same parameters
-    var that;
+
+    Crypt that;
     switch (this._type) {
-      case ID_SHA256:
+      case idSha256:
         that = new Crypt.sha256(value, rounds: this._rounds, salt: this._salt);
         break;
       default:

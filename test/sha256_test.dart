@@ -1,4 +1,4 @@
-// Copyright (c) 2015, Hoylen Sue. All rights reserved. Use of this source code
+// Copyright (c) 2015, 2017, Hoylen Sue. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 //
 // Tests crypt using SHA-256.
@@ -132,7 +132,7 @@ Future main() async {
       var a = new Crypt(
           r"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5");
 
-      expect(a.type, equals(Crypt.ID_SHA256));
+      expect(a.type, equals(Crypt.idSha256));
       expect(a.rounds, isNull);
       expect(a.salt, equals("saltstring"));
       expect(a.hash, equals("5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5"));
@@ -140,7 +140,7 @@ Future main() async {
       a = new Crypt(
           r"$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
 
-      expect(a.type, equals(Crypt.ID_SHA256));
+      expect(a.type, equals(Crypt.idSha256));
       expect(a.rounds, equals(10000));
       expect(a.salt, equals("saltstringsaltst"));
       expect(a.hash, equals("3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA"));
@@ -150,14 +150,14 @@ Future main() async {
     // Compare
 
     test("compare", () {
-      var secret = "p@ssw0rd";
+      final secret = "p@ssw0rd";
 
       expect(new Crypt.sha256(secret).match(secret), isTrue);
       expect(new Crypt.sha256(secret, rounds: 1000).match(secret), isTrue);
       expect(new Crypt.sha256(secret, salt: "foobar").match(secret), isTrue);
       expect(new Crypt.sha256(secret, salt: "").match(secret), isTrue);
 
-      var wrong = "!" + secret;
+      final wrong = "!" + secret;
 
       expect(new Crypt.sha256(secret).match(wrong), isFalse);
       expect(new Crypt.sha256(secret, rounds: 1000).match(wrong), isFalse);
@@ -183,17 +183,17 @@ Future main() async {
     //----------------
 
     test("timing", () async {
-      var rounds = 50000;
-      var start = new DateTime.now();
-      var hash =
+      final rounds = 50000;
+      final start = new DateTime.now();
+      final hash =
           new Crypt.sha256("p@ssw0rd", rounds: rounds, salt: "abcdefghijklmnop")
               .toString();
-      var finish = new DateTime.now();
+      final finish = new DateTime.now();
 
-      var delay = finish.difference(start);
+      final delay = finish.difference(start);
       // print("SHA-256: ${rounds} rounds: calculation time=${delay}");
 
-      expect(delay, greaterThan(new Duration(milliseconds: 100)),
+      expect(delay, greaterThan(const Duration(milliseconds: 100)),
           reason: "Your computer is too fast!");
       expect(hash, startsWith(r"$5$"));
     });
