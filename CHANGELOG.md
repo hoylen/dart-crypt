@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6
+
+- Updated the upper bound of the SDK constraint to <3.0.0.
+
 ## 1.0.5
 
 - Code made sound to support Dart strong mode.
