@@ -22,6 +22,11 @@ the number of rounds, the salt and the hash value. When SHA-256 is
 being used, the default number of rounds is 5000 (as defined by the
 specification).
 
+**Note:** different systems use the crypt formatted string
+differently.  For example, as the value of the `userPassword`
+attribute in an LDAP _posixAccount_ entry, "{crypt}" needs to be
+prepended to it.
+
 ## Usage
 
 ```dart
