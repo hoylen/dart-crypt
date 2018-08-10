@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7
+
+- Added hashCode property.
+- Fixed dartanalyzer warnings.
+
 ## 1.0.6
 
 - Updated the upper bound of the SDK constraint to <3.0.0.
