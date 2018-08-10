@@ -6,6 +6,6 @@ author: Hoylen Sue <hoylen@hoylen.com>
 environment:
   sdk: ">=1.13.0 <3.0.0"
 dev_dependencies:
-  test: "^1.3.0"
+  test: ">=0.12.10 <1.4.0"
 dependencies:
   crypto: ">=0.9.0 <3.0.0" # Note: until they get upgraded, this needs to co-exist with packages that depend on 0.x.x versions
