@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0
+
+- Code clean up to satisfy pana 0.13.2 health checks.
+- Updated minimum dependency to Dart 2.3.
+
 ## 1.0.7
 
 - Added hashCode property.

@@ -16,8 +16,8 @@ import 'package:crypto/crypto.dart' as crypto;
 ///
 /// ## Usage
 ///
-/// Construct a Crypt object using the [sha256] constructor or by parsing a
-/// crypt format string using the default constructor.
+/// Construct a Crypt object using the [Crypt.sha256] constructor or by parsing
+/// a crypt formatted string to the default [Crypt] constructor.
 ///
 /// The crypt format string value is obtained by using the [toString] method.
 ///
@@ -44,7 +44,7 @@ class Crypt {
 
   // Random number generator used for generating salts
 
-  static final _rnd = new Random();
+  static final _rnd = Random();
 
   // from the specification: do not change
   /*
@@ -84,17 +84,15 @@ class Crypt {
           // Parse explicitly specified rounds
           final roundsStr = 'rounds=';
           if (!parts[2].startsWith(roundsStr)) {
-            throw new FormatException(
-                'Crypt string invalid rounds: ${parts[2]}');
+            throw FormatException('Crypt string invalid rounds: ${parts[2]}');
           }
           try {
             _rounds = int.parse(parts[2].substring(roundsStr.length));
           } on FormatException catch (_) {
-            throw new FormatException(
-                'Crypt string invalid rounds: ${parts[2]}');
+            throw FormatException('Crypt string invalid rounds: ${parts[2]}');
           }
           if (_rounds < _minShaRounds || _maxShaRounds < _rounds) {
-            throw new RangeError('Crypt string rounds out of range: $_rounds');
+            throw RangeError('Crypt string rounds out of range: $_rounds');
           }
         } else {
           _rounds = null; // default rounds
@@ -114,7 +112,7 @@ class Crypt {
           throw const FormatException('Crypt string is empty');
         }
       } else {
-        throw new FormatException(
+        throw FormatException(
             'Crypt string: unsupported algorithm: ${parts[1]}');
       }
     } else {
@@ -147,7 +145,7 @@ class Crypt {
   Crypt.sha256(String key, {int rounds, String salt}) {
     key ??= ''; // to avoid raising an error
 
-    final valueBytes = new List<int>.from(key.codeUnits);
+    final valueBytes = List<int>.from(key.codeUnits);
 
     // Determine the number of rounds to use
 
@@ -173,27 +171,32 @@ class Crypt {
       for (var x = 0; x < _maxShaSaltLength; x++) {
         saltBytes.add(_saltChars.codeUnitAt(_rnd.nextInt(_saltChars.length)));
       }
-      salt = new String.fromCharCodes(saltBytes);
+      salt = String.fromCharCodes(saltBytes);
     } else {
       // Use provided salt (up to the maximum required length)
       if (_maxShaSaltLength < salt.length) {
         salt = salt.substring(0, _maxShaSaltLength);
       }
-      saltBytes = new List<int>.from(salt.codeUnits);
+      saltBytes = List<int>.from(salt.codeUnits);
     }
 
     // Calculations
     //
     // The steps below refer to the numbered steps from the specification.
 
-    final dataA = <int>[] // Step 1
-      ..addAll(valueBytes) // Step 2
-      ..addAll(saltBytes); // Step 3
+    final dataA = [
+      // Step 1
+      ...valueBytes, // Step 2
+      ...saltBytes // Step 3
+    ];
 
-    final dataB = <int>[] // Step 4
-      ..addAll(valueBytes) // Step 5
-      ..addAll(saltBytes) // Step 6
-      ..addAll(valueBytes); // Step 7
+    final dataB = [
+      // step 4
+      ...valueBytes, // Step 5
+      ...saltBytes, // Step 6
+      ...valueBytes // Step 7
+    ];
+
     final altBytes = crypto.sha256.convert(dataB).bytes; // Step 8
 
     var count = key.length;
@@ -287,7 +290,7 @@ class Crypt {
 
     // Return the crypt formatted result
 
-    final result = new StringBuffer();
+    final result = StringBuffer();
 
     _encode_3bytes(result, running[0], running[10], running[20]);
     _encode_3bytes(result, running[21], running[1], running[11]);
@@ -436,10 +439,10 @@ class Crypt {
     Crypt that;
     switch (_type) {
       case idSha256:
-        that = new Crypt.sha256(value, rounds: _rounds, salt: _salt);
+        that = Crypt.sha256(value, rounds: _rounds, salt: _salt);
         break;
       default:
-        throw new StateError('Crypt: invalid algorithm: $_type');
+        throw StateError('Crypt: invalid algorithm: $_type');
     }
 
     // Compare the two
