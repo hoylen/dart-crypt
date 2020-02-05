@@ -1,4 +1,4 @@
-// Copyright (c) 2015, 2016, 2017, 2018, Hoylen Sue. All rights reserved.
+// Copyright (c) 2015, 2016, 2017, 2018, 2020, Hoylen Sue. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be found
 // in the LICENSE file.
 
@@ -10,23 +10,25 @@ import 'package:crypto/crypto.dart' as crypto;
 //----------------------------------------------------------------
 /// One-way string hashing for salted passwords using the Unix crypt format.
 ///
-/// This class implements the SHA-256 crypt hash as specified by "Unix crypt
-/// using SHA-256 and SHA-512 [ref](http://www.akkadia.org/drepper/SHA-crypt.txt)"
-/// (version: 0.42008-04-03).
+/// This class implements SHA-256 and SHA-512 crypt hashes as specified by
+/// "[Unix crypt using SHA-256 and SHA-512](http://www.akkadia.org/drepper/SHA-crypt.txt)"
+/// (version: 0.6 2016-08-31).
 ///
 /// ## Usage
 ///
-/// Construct a Crypt object using the [Crypt.sha256] constructor or by parsing
-/// a crypt formatted string to the default [Crypt] constructor.
+/// Construct a Crypt object using the [Crypt.sha256] or [Crypt.sha512]
+/// constructors, or by parsing a crypt formatted string with the default
+/// [Crypt] constructor.
 ///
-/// The crypt format string value is obtained by using the [toString] method.
+/// The crypt format string value is obtained from a Crypt object by using its
+/// [toString] method.
 ///
-/// Test if a value's hash matches using the [match] method.
-///
-/// See <https://pub.dartlang.org/packages/crypt> for an example.
+/// To test if a value matches a Crypt hash, create a Crypt object from the
+/// crypt format string and then invoke the [match] method with the value
+/// being tested.
 ///
 /// Note: The [hashCode] method has nothing to do with the crypt hashes. It is
-/// inherited from the Dart object.
+/// a standard method in all Dart objects.
 
 class Crypt {
   static const int _maxShaSaltLength = 16;
@@ -60,10 +62,10 @@ class Crypt {
   static const String idSha256 = '5';
 
   // Crypt ID for the SHA-512 method.
-  //static const String ID_SHA512 = '6';
+  static const String idSha512 = '6';
 
   //----------------------------------------------------------------
-  /// Constructor from a crypt format string.
+  /// Parse a crypt format string.
   ///
   /// Produce a [Crypt] object from parsing a crypt format string.
   ///
@@ -75,7 +77,7 @@ class Crypt {
     if ((parts.length == 4 || parts.length == 5) && parts[0].isEmpty) {
       _type = parts[1];
 
-      if (_type == idSha256) {
+      if (_type == idSha256 || _type == idSha512) {
         // SHA-256
 
         // Get the rounds (if any)
@@ -143,6 +145,88 @@ class Crypt {
   /// generated hash.
 
   Crypt.sha256(String key, {int rounds, String salt}) {
+    final c = _sha251sha512Algorithm(crypto.sha256, 32, key,
+        rounds: rounds, salt: salt);
+
+    final result = StringBuffer();
+
+    _encode_3bytes(result, c[0], c[10], c[20]);
+    _encode_3bytes(result, c[21], c[1], c[11]);
+    _encode_3bytes(result, c[12], c[22], c[2]);
+    _encode_3bytes(result, c[3], c[13], c[23]);
+    _encode_3bytes(result, c[24], c[4], c[14]);
+    _encode_3bytes(result, c[15], c[25], c[5]);
+    _encode_3bytes(result, c[6], c[16], c[26]);
+    _encode_3bytes(result, c[27], c[7], c[17]);
+    _encode_3bytes(result, c[18], c[28], c[8]);
+    _encode_3bytes(result, c[9], c[19], c[29]);
+    _encode_3bytes(result, c[31], c[30]);
+
+    _hash = result.toString();
+    _type = idSha256;
+  }
+
+  //----------------------------------------------------------------
+  /// Constructor using the SHA-512 algorithm.
+  ///
+  /// Implements the SHA-512 password hashing as specified by
+  /// "Unix crypt using SHA-256 and SHA-512", by Ulrich Drepper,
+  /// version: 0.4 2008-4-3.
+  /// <http://www.akkadia.org/drepper/SHA-crypt.txt>
+  ///
+  /// The [key] is the value being hashed.
+  ///
+  /// If [rounds] is not provided, the default of 5000 is used and the rounds
+  /// is not explicitly included in the result. Rounds less than 1000 results
+  /// in 1000 being used. Rounds greater than 999,999,999 results in
+  /// 999,999,999 being used. These numbers are defined by the specification.
+  ///
+  /// If the [salt] is not provided, a random 16-character salt is
+  /// generated. Otherwise the provided value is used as the salt,
+  /// up to 16 characters. If a longer salt is provided, the extra
+  /// characters are ignored. Shorter salts (especially the empty string)
+  /// are not recommended, since they reduce the security of the
+  /// generated hash.
+
+  Crypt.sha512(String key, {int rounds, String salt}) {
+    final c = _sha251sha512Algorithm(crypto.sha512, 64, key,
+        rounds: rounds, salt: salt);
+
+    final result = StringBuffer();
+
+    _encode_3bytes(result, c[0], c[21], c[42]);
+    _encode_3bytes(result, c[22], c[43], c[1]);
+    _encode_3bytes(result, c[44], c[2], c[23]);
+    _encode_3bytes(result, c[3], c[24], c[45]);
+    _encode_3bytes(result, c[25], c[46], c[4]);
+    _encode_3bytes(result, c[47], c[5], c[26]);
+    _encode_3bytes(result, c[6], c[27], c[48]);
+    _encode_3bytes(result, c[28], c[49], c[7]);
+    _encode_3bytes(result, c[50], c[8], c[29]);
+    _encode_3bytes(result, c[9], c[30], c[51]);
+    _encode_3bytes(result, c[31], c[52], c[10]);
+    _encode_3bytes(result, c[53], c[11], c[32]);
+    _encode_3bytes(result, c[12], c[33], c[54]);
+    _encode_3bytes(result, c[34], c[55], c[13]);
+    _encode_3bytes(result, c[56], c[14], c[35]);
+    _encode_3bytes(result, c[15], c[36], c[57]);
+    _encode_3bytes(result, c[37], c[58], c[16]);
+    _encode_3bytes(result, c[59], c[17], c[38]);
+    _encode_3bytes(result, c[18], c[39], c[60]);
+    _encode_3bytes(result, c[40], c[61], c[19]);
+    _encode_3bytes(result, c[62], c[20], c[41]);
+    _encode_3bytes(result, c[63]);
+
+    _hash = result.toString();
+    _type = idSha512;
+  }
+
+  //----------------------------------------------------------------
+  // Implementation of the algorithm used for SHA-256 and SHA-512 crypt.
+
+  List<int> _sha251sha512Algorithm(
+      crypto.Hash sha256sha512, int blockSize32or64, String key,
+      {int rounds, String salt}) {
     key ??= ''; // to avoid raising an error
 
     final valueBytes = List<int>.from(key.codeUnits);
@@ -197,12 +281,12 @@ class Crypt {
       ...valueBytes // Step 7
     ];
 
-    final altBytes = crypto.sha256.convert(dataB).bytes; // Step 8
+    final altBytes = sha256sha512.convert(dataB).bytes; // Step 8
 
     var count = key.length;
-    while (32 <= count) {
+    while (blockSize32or64 <= count) {
       dataA.addAll(altBytes);
-      count -= 32;
+      count -= blockSize32or64;
     }
     if (0 < count) {
       dataA.addAll(altBytes.sublist(0, count)); // Step 10
@@ -218,22 +302,22 @@ class Crypt {
       }
     }
 
-    final digestA = crypto.sha256.convert(dataA).bytes; // Step 12
+    final digestA = sha256sha512.convert(dataA).bytes; // Step 12
 
     final dataDP = <int>[]; // Step 13
     for (var x = 0; x < key.length; x++) {
       dataDP.addAll(valueBytes); // Step 14
     }
-    final dpBytes = crypto.sha256.convert(dataDP).bytes; // Step 15
+    final dpBytes = sha256sha512.convert(dataDP).bytes; // Step 15
 
     // Step 16
 
     final p = <int>[];
 
     count = key.length;
-    while (32 <= count) {
+    while (blockSize32or64 <= count) {
       p.addAll(dpBytes);
-      count -= 32;
+      count -= blockSize32or64;
     }
     if (0 < count) {
       p.addAll(dpBytes.sublist(0, count));
@@ -245,16 +329,16 @@ class Crypt {
     for (var x = 0; x < 16 + a0; x++) {
       dataDS.addAll(saltBytes);
     }
-    final dsBytes = crypto.sha256.convert(dataDS).bytes; // Step 19
+    final dsBytes = sha256sha512.convert(dataDS).bytes; // Step 19
 
     // Step 20
 
     final s = <int>[];
 
     count = salt.length;
-    while (32 <= count) {
+    while (blockSize32or64 <= count) {
       s.addAll(dsBytes);
-      count -= 32;
+      count -= blockSize32or64;
     }
     if (0 < count) {
       s.addAll(dsBytes.sublist(0, count));
@@ -285,53 +369,49 @@ class Crypt {
         dataC.addAll(p);
       }
 
-      running = crypto.sha256.convert(dataC).bytes;
+      running = sha256sha512.convert(dataC).bytes;
     }
 
-    // Return the crypt formatted result
-
-    final result = StringBuffer();
-
-    _encode_3bytes(result, running[0], running[10], running[20]);
-    _encode_3bytes(result, running[21], running[1], running[11]);
-    _encode_3bytes(result, running[12], running[22], running[2]);
-    _encode_3bytes(result, running[3], running[13], running[23]);
-    _encode_3bytes(result, running[24], running[4], running[14]);
-    _encode_3bytes(result, running[15], running[25], running[5]);
-    _encode_3bytes(result, running[6], running[16], running[26]);
-    _encode_3bytes(result, running[27], running[7], running[17]);
-    _encode_3bytes(result, running[18], running[28], running[8]);
-    _encode_3bytes(result, running[9], running[19], running[29]);
-    _encode_3bytes(result, running[31], running[30]);
-
-    _type = idSha256;
     _rounds = (customRounds) ? rounds : null;
     _salt = salt;
-    _hash = result.toString();
+
+    return running;
   }
+
+  //----------------------------------------------------------------
 
   static const String _base64EncodingChars =
       './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-  // Custom encoding of 3 bytes into 4 characters used by the SHA-256 crypt hash.
+  // Custom encoding of 3 bytes into 4 characters used by the SHA-256 and
+  // SHA-512 crypt hash algorithm.
+  //
+  // When there are 3 bytes, the "third byte" is c, "second byte" is b and
+  // "first byte" is a. And it results in 4 characters:
+  //
+  //     CCCCCCcc BBBBbbbb AAaaaaaa -> aaaaaa bbbbAA ccBBBBBB CCCCCC
+  //
+  // When used as the last group, only two or one bytes are avaliable and the
+  // result is only three or two characters.
+  //
+  //     CCCCcccc BBbbbbbb -> bbbbbb ccccBB 0000CCCC
+  //     CCcccccc -> cccccc 0000CC
 
-  static void _encode_3bytes(StringBuffer result, int b2Input, int b1Input,
-      [int b0Input]) {
-    var b2 = b2Input;
-    var b1 = b1Input;
-    var b0 = b0Input;
+  static void _encode_3bytes(StringBuffer result, int c, [int b, int a]) {
+    int n; // number of characters in encoding
+    int w; // 24-bit value with all the bytes in it
 
-    int n;
-    if (b0 != null) {
+    if (a != null) {
       n = 4;
-    } else {
+      w = (c << 16) | (b << 8) | (a);
+    } else if (b != null) {
       n = 3;
-      b0 = b1;
-      b1 = b2;
-      b2 = 0;
+      w = (c << 8) | (b);
+    } else {
+      n = 2;
+      w = (c);
     }
 
-    var w = (b2 << 16) | (b1 << 8) | (b0);
     while (0 < n--) {
       final value = w & 0x3F;
       result.write(_base64EncodingChars.substring(value, value + 1));
@@ -346,7 +426,7 @@ class Crypt {
 
   /// Algorithm used by the crypt.
   ///
-  /// Allowed values: [idSha256].
+  /// Allowed values: [idSha256] or [idSha256].
 
   String get type => _type;
   String _type;
@@ -389,7 +469,11 @@ class Crypt {
           case idSha256:
             defaultRounds = _defaultShaRounds;
             break;
+          case idSha512:
+            defaultRounds = _defaultShaRounds;
+            break;
           default:
+            // unknown or unsupported algorithm
             return false;
         }
         final r1 = _rounds ?? defaultRounds;
@@ -440,6 +524,9 @@ class Crypt {
     switch (_type) {
       case idSha256:
         that = Crypt.sha256(value, rounds: _rounds, salt: _salt);
+        break;
+      case idSha512:
+        that = Crypt.sha512(value, rounds: _rounds, salt: _salt);
         break;
       default:
         throw StateError('Crypt: invalid algorithm: $_type');

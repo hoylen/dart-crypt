@@ -5,6 +5,4 @@
 
 library crypt;
 
-// TODO: Export any libraries intended for clients of this package.
-
 export 'src/crypt_base.dart';

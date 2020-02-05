@@ -11,68 +11,89 @@ import 'package:test/test.dart';
 
 import 'package:crypt/crypt.dart';
 
+//################################################################
+
+class SpecTestVector {
+  const SpecTestVector(this._params, this.input, this.expected);
+
+  final String _params;
+  final String input;
+  final String expected;
+
+  int get rounds {
+    final p = _params.split(r'$');
+    expect(p.length == 3 || p.length == 4, isTrue);
+    expect(p[0] == '' && p[1] == '5', isTrue);
+
+    return (3 < p.length) ? int.parse(p[2].substring('rounds='.length)) : null;
+  }
+
+  String get salt {
+    final p = _params.split(r'$');
+    expect(p.length == 3 || p.length == 4, isTrue);
+    expect(p[0] == '' && p[1] == '5', isTrue);
+
+    return (3 < p.length) ? p[3] : p[2];
+  }
+}
+
 //----------------------------------------------------------------
+// Examples from line 990 of <http://www.akkadia.org/drepper/SHA-crypt.txt>
+
+const specTestVectors = [
+  SpecTestVector(r'$5$saltstring', 'Hello world!',
+      r'$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5'),
+  SpecTestVector(
+      r'$5$rounds=10000$saltstringsaltstring',
+      'Hello world!',
+      r'$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.'
+          'opqey6IcA'),
+  SpecTestVector(
+      r'$5$rounds=5000$toolongsaltstring',
+      'This is just a test',
+      r'$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07guHPvOW8'
+          'mGRcvxa5'),
+  SpecTestVector(
+      r'$5$rounds=1400$anotherlongsaltstring',
+      'a very much longer text to encrypt.  This one even stretches over more'
+          'than one line.',
+      r'$5$rounds=1400$anotherlongsalts$Rx.j8H.h8HjEDGomFU8bDkXm3XIUnzyxf12'
+          'oP84Bnq1'),
+  SpecTestVector(
+      r'$5$rounds=77777$short',
+      'we have a short salt string but not a short password',
+      r'$5$rounds=77777$short$JiO1O3ZpDAxGJeaDIuqCoEFysAe1mZNJRs3pw0KQRd/'),
+  SpecTestVector(
+      r'$5$rounds=123456$asaltof16chars..',
+      'a short string',
+      r'$5$rounds=123456$asaltof16chars..$gP3VQ/6X7UUEW3HkBn2w1/Ptq2jxPyzV/'
+          'cZKmF/wJvD'),
+  SpecTestVector(
+      r'$5$rounds=10$roundstoolow',
+      'the minimum number is still observed',
+      r'$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQebY9l/gL97'
+          '2bIC'),
+];
+
+//################################################################
 
 Future main() async {
-//----------------------------------------------------------------
-
   group('SHA256', () {
     //----------------
     // Examples from <http://www.akkadia.org/drepper/SHA-crypt.txt>
 
     test('examples from the specification', () {
-      expect(Crypt.sha256('Hello world!', salt: 'saltstring').toString(),
-          equals(r'$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5'));
-
-      expect(
-          Crypt.sha256('Hello world!',
-                  salt: 'saltstringsaltstring', rounds: 10000)
-              .toString(),
-          equals(
-              r'$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA'));
-
-      expect(
-          Crypt.sha256('This is just a test',
-                  rounds: 5000, salt: 'toolongsaltstring')
-              .toString(),
-          equals(
-              r'$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07guHPvOW8mGRcvxa5'));
-
-      expect(
-          Crypt.sha256(
-                  r'a very much longer text to encrypt.  This one even stretches over morethan one line.',
-                  rounds: 1400,
-                  salt: 'anotherlongsaltstring')
-              .toString(),
-          equals(
-              r'$5$rounds=1400$anotherlongsalts$Rx.j8H.h8HjEDGomFU8bDkXm3XIUnzyxf12oP84Bnq1'));
-
-      expect(
-          Crypt.sha256('we have a short salt string but not a short password',
-                  rounds: 77777, salt: 'short')
-              .toString(),
-          equals(
-              r'$5$rounds=77777$short$JiO1O3ZpDAxGJeaDIuqCoEFysAe1mZNJRs3pw0KQRd/'));
-
-      expect(
-          Crypt.sha256('a short string',
-                  rounds: 123456, salt: 'asaltof16chars..')
-              .toString(),
-          equals(
-              r'$5$rounds=123456$asaltof16chars..$gP3VQ/6X7UUEW3HkBn2w1/Ptq2jxPyzV/cZKmF/wJvD'));
-
-      expect(
-          Crypt.sha256('the minimum number is still observed',
-                  rounds: 10, salt: 'roundstoolow')
-              .toString(),
-          equals(
-              r'$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQebY9l/gL972bIC'));
+      for (final v in specTestVectors) {
+        final s =
+            Crypt.sha256(v.input, salt: v.salt, rounds: v.rounds).toString();
+        expect(s, equals(v.expected));
+      }
     });
 
     //----------------
     // Examples from <http://php.net/manual/en/function.crypt.php>
 
-    test('examples from PHP crypt documentation', () {
+    test('example from PHP crypt documentation', () {
       expect(
           Crypt.sha256('rasmuslerdorf',
                   rounds: 5000, salt: 'usesomesillystringforsalt')
@@ -124,7 +145,7 @@ Future main() async {
     });
 
     //----------------
-    // Compare
+    // Parsing components from the string
 
     test('parsing crypt format strings', () {
       var a =
@@ -145,7 +166,7 @@ Future main() async {
     });
 
     //----------------
-    // Compare
+    // Comparing hash to secret
 
     test('compare', () {
       final secret = 'p@ssw0rd';
