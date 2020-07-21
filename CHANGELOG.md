@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1
+
+- Fixed URL in README.
+
 ## 3.0.0
 
 - Added support for SHA-512 (which requires upgrading to crypto 2.1.0 or later).

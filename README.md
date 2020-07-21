@@ -109,6 +109,6 @@ that older version won't have support for SHA-512 crypt strings.
 
 Please file feature requests and bugs at the [GitHub issue tracker][tracker].
 
-[crypt-sha2]: http://www.akkadia.org/drepper/SHA-crypt.txt
+[crypt-sha2]: https://akkadia.org/drepper/SHA-crypt.txt
 [crypto]: https://pub.dartlang.org/packages/crypto
 [tracker]: https://github.com/hoylen/dart-crypt/issues
