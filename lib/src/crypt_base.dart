@@ -89,14 +89,17 @@ class Crypt {
             throw FormatException('Crypt string invalid rounds: ${parts[2]}');
           }
           try {
-            _rounds = int.parse(parts[2].substring(roundsStr.length));
+            final r = int.parse(parts[2].substring(roundsStr.length));
+            if (r < _minShaRounds || _maxShaRounds < r) {
+              throw RangeError('Crypt string rounds out of range: $r');
+            }
+            _rounds = r;
           } on FormatException catch (_) {
             throw FormatException('Crypt string invalid rounds: ${parts[2]}');
           }
-          if (_rounds < _minShaRounds || _maxShaRounds < _rounds) {
-            throw RangeError('Crypt string rounds out of range: $_rounds');
-          }
+
         } else {
+          // No explicit rounds specified
           _rounds = null; // default rounds
         }
 
@@ -111,7 +114,7 @@ class Crypt {
 
         _hash = parts[parts.length - 1];
         if (_hash.isEmpty) {
-          throw const FormatException('Crypt string is empty');
+          throw const FormatException('Crypt string empty hash');
         }
       } else {
         throw FormatException(
@@ -144,7 +147,7 @@ class Crypt {
   /// are not recommended, since they reduce the security of the
   /// generated hash.
 
-  Crypt.sha256(String key, {int rounds, String salt}) {
+  Crypt.sha256(String key, {int? rounds, String? salt}) {
     final c = _sha251sha512Algorithm(crypto.sha256, 32, key,
         rounds: rounds, salt: salt);
 
@@ -188,7 +191,7 @@ class Crypt {
   /// are not recommended, since they reduce the security of the
   /// generated hash.
 
-  Crypt.sha512(String key, {int rounds, String salt}) {
+  Crypt.sha512(String key, {int? rounds, String? salt}) {
     final c = _sha251sha512Algorithm(crypto.sha512, 64, key,
         rounds: rounds, salt: salt);
 
@@ -226,9 +229,7 @@ class Crypt {
 
   List<int> _sha251sha512Algorithm(
       crypto.Hash sha256sha512, int blockSize32or64, String key,
-      {int rounds, String salt}) {
-    key ??= ''; // to avoid raising an error
-
+      {int? rounds, String? salt}) {
     final valueBytes = List<int>.from(key.codeUnits);
 
     // Determine the number of rounds to use
@@ -397,11 +398,13 @@ class Crypt {
   //     CCCCcccc BBbbbbbb -> bbbbbb ccccBB 0000CCCC
   //     CCcccccc -> cccccc 0000CC
 
-  static void _encode_3bytes(StringBuffer result, int c, [int b, int a]) {
+  static void _encode_3bytes(StringBuffer result, int c, [int? b, int? a]) {
     int n; // number of characters in encoding
     int w; // 24-bit value with all the bytes in it
 
-    if (a != null) {
+    // Note: if a is not null, b is never null
+
+    if (a != null && b != null) {
       n = 4;
       w = (c << 16) | (b << 8) | (a);
     } else if (b != null) {
@@ -429,25 +432,26 @@ class Crypt {
   /// Allowed values: [idSha256] or [idSha256].
 
   String get type => _type;
-  String _type;
+  late String _type;
 
   /// Number of rounds or null.
   ///
   /// Null means the default number of rounds. When this is null, the number
-  /// of rounds is not explicitly included in the crypt formatted string.
+  /// of rounds is not explicitly included in the crypt formatted string,
+  /// but its value is implied by the type.
 
-  int get rounds => _rounds;
-  int _rounds;
+  int? get rounds => _rounds;
+  int? _rounds;
 
   /// The salt value.
 
   String get salt => _salt;
-  String _salt;
+  late String _salt;
 
   /// The hash value.
 
   String get hash => _hash;
-  String _hash;
+  late String _hash;
 
   //----------------------------------------------------------------
   /// Equality operator
@@ -491,7 +495,7 @@ class Crypt {
   /// The hash code for this object.
 
   @override
-  int get hashCode => (_hash != null) ? _hash.hashCode : 0;
+  int get hashCode => _hash.hashCode;
 
   //================================================================
 

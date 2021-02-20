@@ -20,7 +20,7 @@ class SpecTestVector {
   final String input;
   final String expected;
 
-  int get rounds {
+  int? get rounds {
     final p = _params.split(r'$');
     expect(p.length == 3 || p.length == 4, isTrue);
     expect(p[0] == '' && p[1] == '6', isTrue);

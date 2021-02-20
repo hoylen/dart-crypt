@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.0.0
+
+- Null safety release.
+
 ## 3.0.1
 
 - Fixed URL in README.
