@@ -97,7 +97,6 @@ class Crypt {
           } on FormatException catch (_) {
             throw FormatException('Crypt string invalid rounds: ${parts[2]}');
           }
-
         } else {
           // No explicit rounds specified
           _rounds = null; // default rounds

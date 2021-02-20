@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.0.1
+
+- Fixed code formatting.
+
 ## 4.0.0
 
 - Null safety release.
