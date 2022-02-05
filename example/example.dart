@@ -53,8 +53,8 @@ void main() {
     // Parse the crypt string: this extracts the type, rounds and salt
     final h = Crypt(hashString);
 
-    final correctValue = 'p@ssw0rd';
-    final wrongValue = '123456';
+    const correctValue = 'p@ssw0rd';
+    const wrongValue = '123456';
 
     if (!h.match(correctValue)) {
       print('Error: unexpected non-match: $correctValue');

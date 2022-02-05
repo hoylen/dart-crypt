@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.1.0
+
+- Use a cryptographically secure random number to generate salts,
+  if one is available. Added `cryptographicallySecureSalts` to
+  control whether a cryptographically insecure random number
+  generator can be used if a cryptographically secure one is
+  not supported.
+
 ## 4.0.1
 
 - Fixed code formatting.

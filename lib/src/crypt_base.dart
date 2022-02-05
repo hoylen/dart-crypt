@@ -1,13 +1,13 @@
-// Copyright (c) 2015, 2016, 2017, 2018, 2020, Hoylen Sue. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be found
-// in the LICENSE file.
+// Copyright (c) 2015, 2016, 2017, 2018, 2020, 2022, Hoylen Sue.
+// All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 
 library crypt.base;
 
 import 'dart:math';
 import 'package:crypto/crypto.dart' as crypto;
 
-//----------------------------------------------------------------
+//################################################################
 /// One-way string hashing for salted passwords using the Unix crypt format.
 ///
 /// This class implements SHA-256 and SHA-512 crypt hashes as specified by
@@ -31,41 +31,11 @@ import 'package:crypto/crypto.dart' as crypto;
 /// a standard method in all Dart objects.
 
 class Crypt {
-  static const int _maxShaSaltLength = 16;
-  static const String _saltChars =
-      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-
-  static const int _minShaRounds = 1000;
-
-  // from the specification: do not change
-  static const int _maxShaRounds = 999999999;
-
-  // from the specification: do not change
-
-  static const int _defaultShaRounds = 5000;
-
-  // Random number generator used for generating salts
-
-  static final _rnd = Random();
-
-  // from the specification: do not change
-  /*
-  /// Crypt ID for the MD5 (Linux, BSD) method.
-  static const String ID_MD5 = '1';
-  /// Crypt ID for the Blowfish (OpenBSD) method.
-  static const String ID_BLOWFISH = '2a';
-  /// Crypt ID for the Sun MD5 method.
-  static const String ID_SUN_MD5 = 'md5';
-  */
-
-  /// Crypt ID for the SHA-256 method.
-  static const String idSha256 = '5';
-
-  // Crypt ID for the SHA-512 method.
-  static const String idSha512 = '6';
+  //================================================================
+  // Constructors
 
   //----------------------------------------------------------------
-  /// Parse a crypt format string.
+  /// Creates a crypt from a crypt format string.
   ///
   /// Produce a [Crypt] object from parsing a crypt format string.
   ///
@@ -84,7 +54,7 @@ class Crypt {
 
         if (parts.length == 5) {
           // Parse explicitly specified rounds
-          final roundsStr = 'rounds=';
+          const roundsStr = 'rounds=';
           if (!parts[2].startsWith(roundsStr)) {
             throw FormatException('Crypt string invalid rounds: ${parts[2]}');
           }
@@ -125,7 +95,7 @@ class Crypt {
   }
 
   //----------------------------------------------------------------
-  /// Constructor using the SHA-256 algorithm.
+  /// Creates a crypt using the SHA-256 algorithm.
   ///
   /// Implements the SHA-256 password hashing as specified by
   /// "Unix crypt using SHA-256 and SHA-512", by Ulrich Drepper,
@@ -148,7 +118,7 @@ class Crypt {
 
   Crypt.sha256(String key, {int? rounds, String? salt}) {
     final c = _sha251sha512Algorithm(crypto.sha256, 32, key,
-        rounds: rounds, salt: salt);
+        providedRounds: rounds, providedSalt: salt);
 
     final result = StringBuffer();
 
@@ -169,7 +139,7 @@ class Crypt {
   }
 
   //----------------------------------------------------------------
-  /// Constructor using the SHA-512 algorithm.
+  /// Creates a crypt using the SHA-512 algorithm.
   ///
   /// Implements the SHA-512 password hashing as specified by
   /// "Unix crypt using SHA-256 and SHA-512", by Ulrich Drepper,
@@ -192,7 +162,7 @@ class Crypt {
 
   Crypt.sha512(String key, {int? rounds, String? salt}) {
     final c = _sha251sha512Algorithm(crypto.sha512, 64, key,
-        rounds: rounds, salt: salt);
+        providedRounds: rounds, providedSalt: salt);
 
     final result = StringBuffer();
 
@@ -223,45 +193,121 @@ class Crypt {
     _type = idSha512;
   }
 
+  //================================================================
+  // Constants
+
+  static const int _maxShaSaltLength = 16;
+  static const String _saltChars =
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+  static const int _minShaRounds = 1000;
+
+  // from the specification: do not change
+  static const int _maxShaRounds = 999999999;
+
+  // from the specification: do not change
+
+  static const int _defaultShaRounds = 5000;
+
+  // from the specification: do not change
+  /*
+  /// Crypt ID for the MD5 (Linux, BSD) method.
+  static const String ID_MD5 = '1';
+  /// Crypt ID for the Blowfish (OpenBSD) method.
+  static const String ID_BLOWFISH = '2a';
+  /// Crypt ID for the Sun MD5 method.
+  static const String ID_SUN_MD5 = 'md5';
+  */
+
+  /// Crypt ID for the SHA-256 method.
+  static const String idSha256 = '5';
+
+  // Crypt ID for the SHA-512 method.
+  static const String idSha512 = '6';
+
+  //================================================================
+  // Static members
+
+  /// Requires a cryptographically secure random number generator to be used.
+  ///
+  /// When true, a cryptographically secure random number
+  /// generator **must** be used when creating randomly generated salts.
+  /// If the _Random.secure_ from the math package is unsupported,
+  /// an [UnsupportedError] will be thrown if attempting to generate a random
+  /// salt.
+  ///
+  /// When false, allows a non-cryptographically secure random
+  /// number generator, if a cryptographically secure generator is not
+  /// available. But it will use a cryptographically secure random
+  /// number generator (_Random.secure_ from the math package) if it is
+  /// supported; falling back to a cryptographically insecure one
+  /// (_Random_ from the math package) if it is not available.
+  ///
+  /// It is recommended to set this to _true_, unless the target platform
+  /// does not support _Random.secure()_.
+  ///
+  /// **Note:** The default is currently false, since version 4.0.1 and earlier
+  /// only used the non-cryptographically secure random number generator.
+  /// **A future release may make a breaking change** by setting the default
+  /// to true. To prepare for that change, code should **explicitly(( set this
+  /// to _false_, if it is known that it is running in an environment where the
+  /// cryptographically secure random number generator is not available and it
+  /// is acceptable to use a non-cryptographically secure random number
+  /// generator to generate salts.
+
+  static bool cryptographicallySecureSalts = false;
+  // TODO: change default to true to improve salt security: breaking change
+
+  /// Random number generator used for generating salts
+  ///
+  /// Will be set by [_generateSalt] when it is first invoked (to the value
+  /// returned by [_randomNumberGeneratorForSalt]).
+
+  static Random? _random;
+
+  //================================================================
+  // Methods
+
   //----------------------------------------------------------------
   // Implementation of the algorithm used for SHA-256 and SHA-512 crypt.
 
   List<int> _sha251sha512Algorithm(
       crypto.Hash sha256sha512, int blockSize32or64, String key,
-      {int? rounds, String? salt}) {
+      {int? providedRounds, String? providedSalt}) {
     final valueBytes = List<int>.from(key.codeUnits);
 
     // Determine the number of rounds to use
 
+    int rounds;
     bool customRounds;
-    if (rounds == null) {
+    if (providedRounds == null) {
       customRounds = false;
       rounds = _defaultShaRounds;
     } else {
       customRounds = true;
-      if (rounds < _minShaRounds) {
+      if (providedRounds < _minShaRounds) {
         rounds = _minShaRounds;
-      } else if (_maxShaRounds < rounds) {
+      } else if (_maxShaRounds < providedRounds) {
         rounds = _maxShaRounds;
+      } else {
+        rounds = providedRounds;
       }
     }
 
     // Obtain salt to use
 
+    String salt;
     List<int> saltBytes;
-    if (salt == null) {
-      // Generate a random 16-character salt
-      saltBytes = <int>[];
-      for (var x = 0; x < _maxShaSaltLength; x++) {
-        saltBytes.add(_saltChars.codeUnitAt(_rnd.nextInt(_saltChars.length)));
-      }
+    if (providedSalt == null) {
+      // Generate a random 16-character salt: setting both saltBytes and salt
+      saltBytes = _generateSalt(_maxShaSaltLength);
       salt = String.fromCharCodes(saltBytes);
     } else {
-      // Use provided salt (up to the maximum required length)
-      if (_maxShaSaltLength < salt.length) {
-        salt = salt.substring(0, _maxShaSaltLength);
-      }
-      saltBytes = List<int>.from(salt.codeUnits);
+      // Use provided salt (truncated to the maximum required length)
+      salt = (providedSalt.length <= _maxShaSaltLength)
+          ? providedSalt
+          : providedSalt.substring(0, _maxShaSaltLength);
+      saltBytes = salt.codeUnits;
     }
 
     // Calculations
@@ -372,7 +418,7 @@ class Crypt {
       running = sha256sha512.convert(dataC).bytes;
     }
 
-    _rounds = (customRounds) ? rounds : null;
+    _rounds = customRounds ? rounds : null;
     _salt = salt;
 
     return running;
@@ -405,13 +451,13 @@ class Crypt {
 
     if (a != null && b != null) {
       n = 4;
-      w = (c << 16) | (b << 8) | (a);
+      w = (c << 16) | (b << 8) | a;
     } else if (b != null) {
       n = 3;
-      w = (c << 8) | (b);
+      w = (c << 8) | b;
     } else {
       n = 2;
-      w = (c);
+      w = c;
     }
 
     while (0 < n--) {
@@ -482,7 +528,7 @@ class Crypt {
         final r1 = _rounds ?? defaultRounds;
         final r2 = _rounds ?? defaultRounds;
 
-        return (r1 == r2 && _salt == that._salt && _hash == that._hash);
+        return r1 == r2 && _salt == that._salt && _hash == that._hash;
       }
       return false;
     } else {
@@ -496,8 +542,7 @@ class Crypt {
   @override
   int get hashCode => _hash.hashCode;
 
-  //================================================================
-
+  //----------------------------------------------------------------
   /// Crypt format string.
   ///
   /// For example, returns a string like:
@@ -536,6 +581,53 @@ class Crypt {
     }
 
     // Compare the two
-    return (this == that);
+    return this == that;
+  }
+
+  //================================================================
+  // Static methods
+
+  //----------------------------------------------------------------
+  /// Obtain a random number generator for use in generating random salts.
+  ///
+  /// Returns the object created by _Random.secure()_ or _Random()_.
+  ///
+  /// Throws a [UnsupportedError] if [cryptographicallySecureSalts] is true
+  /// and a cryptographically secure random number generator is not supported.
+
+  static Random _randomNumberGeneratorForSalt() {
+    try {
+      return Random.secure();
+    } on UnsupportedError {
+      if (cryptographicallySecureSalts) {
+        // Cryptographically secure salts are required
+        throw UnsupportedError(
+            'cryptographically secure random number generator unavailable'
+            ': cannot generate salt'
+            ': provide a salt value'
+            ' or set Crypt.cryptographicallySecureSalts=false to allow the use'
+            ' of a non-cryptographically secure random number generator.');
+      }
+      return Random(); // resort to a non-cryptographically secure generator
+    }
+  }
+
+  //----------------------------------------------------------------
+  /// Generate a random salt.
+  ///
+  /// The salt will be [length] randomly selected from the [_saltChars].
+
+  static List<int> _generateSalt(int length) {
+    // Set up random number generator, if this is the first invocation
+
+    _random ??= _randomNumberGeneratorForSalt();
+
+    // Choose random characters.
+
+    final saltBytes = <int>[];
+    for (var x = 0; x < length; x++) {
+      saltBytes.add(_saltChars.codeUnitAt(_random!.nextInt(_saltChars.length)));
+    }
+    return saltBytes;
   }
 }

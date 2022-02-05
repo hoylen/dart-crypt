@@ -7,9 +7,8 @@ library crypt.test;
 
 import 'dart:async';
 
-import 'package:test/test.dart';
-
 import 'package:crypt/crypt.dart';
+import 'package:test/test.dart';
 
 //################################################################
 
@@ -138,14 +137,14 @@ Future main() async {
     // Comparing hash to secret
 
     test('compare', () {
-      final secret = 'p@ssw0rd';
+      const secret = 'p@ssw0rd';
 
       expect(Crypt.sha512(secret).match(secret), isTrue);
       expect(Crypt.sha512(secret, rounds: 1000).match(secret), isTrue);
       expect(Crypt.sha512(secret, salt: 'foobar').match(secret), isTrue);
       expect(Crypt.sha512(secret, salt: '').match(secret), isTrue);
 
-      final wrong = '!' + secret;
+      const wrong = '!$secret';
 
       expect(Crypt.sha512(secret).match(wrong), isFalse);
       expect(Crypt.sha512(secret, rounds: 1000).match(wrong), isFalse);

@@ -1,9 +1,9 @@
 # crypt
 
-One-way string hashing for salted passwords using the Unix crypt format.
+One-way string hashing for salted passwords using the **Unix crypt format**.
 
 This package implements the SHA-256 crypt hash and SHA-512 crypt hash,
-as specified by "[Unix crypt using SHA-256 and SHA-512][crypt-sha2]"
+as has been specified by "[Unix crypt using SHA-256 and SHA-512][crypt-sha2]"
 (version: 0.6 2016-08-31).
 
 ## Crypt format strings
@@ -72,8 +72,8 @@ void main() {
     // Parse the crypt string: this extracts the type, rounds and salt
     final h = Crypt(hashString);
 
-    final correctValue = 'p@ssw0rd';
-    final wrongValue = '123456';
+    const correctValue = 'p@ssw0rd';
+    const wrongValue = '123456';
 
     if (!h.match(correctValue)) {
       print('Error: unexpected non-match: $correctValue');
@@ -98,14 +98,31 @@ $6$LJgzW1oI9UZ5w8HO$pTL3hmFg2zBkQPqRhcej6CmY2Az0WLDVlnMGTg//71D3hDEvKCB7XqwtinHE
 
 ## Features and bugs
 
-Salt generation does not use a cryptographically secure random number
-generator. If this is a concern, generate your own salt and pass it in
-as one of the parameters.
+### Random number generators
 
-Version 3.0.0 depends on the Dart [crypto][crypto] package, version
-2.1.4 or newer, which has support for SHA-512.  If you need to use an
+Salt generation uses a cryptographically secure random number
+generator, if one is available. If one is not available, it falls back
+to using a cryptographically insecure one.
+
+Set `Crypt.cryptographicallySecureSalts` to true to prevent a
+cryptographically insecure random number from being used.  An
+exception will then be thrown if attempting to generate a salt on
+platforms that don't support a cryptographically secure random number
+generator.
+
+Explicitly set it to false to allow this fallback behaviour in future
+releases. The default is currently set to false, for backward
+compatibility. But a future release may set the default to true for
+improved security. Explicitly setting it to false will ensure code
+will still work when that breaking change is made.
+
+### Dependency on the crypto package
+
+The current release depends on the Dart [crypto][crypto] package
+version 3.0.0, which has support for SHA-512.  If you need to use an
 older version of _crypto_, use version 2.0.0 of this package -- but
-that older version won't have support for SHA-512 crypt strings.
+that older version won't have support for SHA-512 crypt strings
+and is not null safe.
 
 Please file feature requests and bugs at the [GitHub issue tracker][tracker].
 
