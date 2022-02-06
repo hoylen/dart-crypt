@@ -119,7 +119,7 @@ void main() {
 
 The above example produced the following output:
 
-```
+```text
 $5$jYq8PvB6hI3cLREQ$FGBjCL5NO1qSwync3LOlCWTnIBJCjVsFtst9jNnnBx9
 $5$rounds=10000$wJiiNy1TwwaWhGFN$t2JsIqOgfXh/3LLQF.YA9XDlJmtpLYmSe4i9TZl7cM.
 $5$abcdefghijklmnop$gUWLu9sDI2Qvs112Xb8jmgD3ySIRE5ek63jk6ybSs7D

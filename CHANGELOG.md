@@ -1,6 +1,10 @@
 # Changelog
 
-## 4.1.1
+## 4.2.1
+
+- Improved documentation.
+
+## 4.2.0
 
 - Fixed changing cryptographicallySecureSalts after first salt generated.
 

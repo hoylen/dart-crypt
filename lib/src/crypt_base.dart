@@ -10,11 +10,20 @@ import 'package:crypto/crypto.dart' as crypto;
 //################################################################
 /// One-way string hashing for salted passwords using the Unix crypt format.
 ///
-/// This class implements SHA-256 and SHA-512 crypt hashes as specified by
+/// This class implements the SHA-256 crypt hash and SHA-512 crypt hash,
+/// cryptographic hash formats that are specified in
 /// "[Unix crypt using SHA-256 and SHA-512](http://www.akkadia.org/drepper/SHA-crypt.txt)"
 /// (version: 0.6 2016-08-31).
 ///
 /// ## Usage
+///
+/// ### Checking an entered password against a crypt format hash
+///
+/// To test if a value matches a Crypt hash, create a Crypt object from the
+/// crypt format string and then invoke the [match] method with the value
+/// being tested.
+///
+/// ### Creating a crypt format hash
 ///
 /// Construct a Crypt object using the [Crypt.sha256] or [Crypt.sha512]
 /// constructors, or by parsing a crypt formatted string with the default
@@ -22,10 +31,6 @@ import 'package:crypto/crypto.dart' as crypto;
 ///
 /// The crypt format string value is obtained from a Crypt object by using its
 /// [toString] method.
-///
-/// To test if a value matches a Crypt hash, create a Crypt object from the
-/// crypt format string and then invoke the [match] method with the value
-/// being tested.
 ///
 /// The value of [cryptographicallySecureSalts] controls if the use of
 /// non-cryptographically secure random number generators are allowed to be
