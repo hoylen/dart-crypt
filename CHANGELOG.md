@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.1.1
+
+- Fixed changing cryptographicallySecureSalts after first salt generated.
+
 ## 4.1.0
 
 - Use a cryptographically secure random number to generate salts,

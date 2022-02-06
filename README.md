@@ -3,33 +3,64 @@
 One-way string hashing for salted passwords using the **Unix crypt format**.
 
 This package implements the SHA-256 crypt hash and SHA-512 crypt hash,
-as has been specified by "[Unix crypt using SHA-256 and SHA-512][crypt-sha2]"
+cryptographic hash formats that are specified in
+"[Unix crypt using SHA-256 and SHA-512][crypt-sha2]"
 (version: 0.6 2016-08-31).
+
+These hashes are commonly used in Unix and POSIX systems, and in LDAP
+entries as authentication credentials for POSIX accounts.
 
 ## Crypt format strings
 
 It can produce crypt formatted string like:
 
-    $5$xYWYo0raYwLSchAd$na8cL1H.ESWtof6DNwraE6p8WI9DYObZ3irMe01Guk6
+`$5$xYWYo0raYwLSchAd$na8cL1H.ESWtof6DNwraE6p8WI9DYObZ3irMe01Guk6`
 
 and
 
-    $5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA
+`$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA`
 
-Where the leading "$5$" indicates this is a SHA-256 crypt, and is
-followed a number of fields separated by the dollar sign: a optional
-the number of rounds, the salt and the hash value. A leading "$6$"
-indicates it is a SHA-512 crypt.
+The format is a sequence of fields, leading and separated by a
+dollar sign (`$`):
+
+- algorithm indicator;
+- number of rounds (optional if it is the default number of rounds);
+- the salt; and
+- the hash value.
+
+The formated string starts with `$5$` for a SHA-256 crypt and `$6$`
+for a SHA-512 crypt. There are other (less secure) algorithms, but
+they are currently not supported by this package.
 
 When SHA-256 or SHA-512 is being used, the default number of rounds is
 5000 (as defined by the specification).
 
 **Note:** different systems use the crypt formatted string
 differently.  For example, as the value of the `userPassword`
-attribute in an LDAP _posixAccount_ entry, "{crypt}" needs to be
-prepended to it.
+attribute in an LDAP _posixAccount_ entry, `{crypt}` needs to be
+prepended to it. For example,
+
+`{crypt}$5$xYWYo0raYwLSchAd$na8cL1H.ESWtof6DNwraE6p8WI9DYObZ3irMe01Guk6`
 
 ## Usage
+
+### Checking against a crypt format hash
+
+To test if an entered password matches the password that was used to
+create a crypt format hash, create a `Crypt` object from the crypt
+format has and invoke the _match_ method on it.
+
+
+```dart
+
+bool isValid(String cryptFormatHash, String enteredPassword) =>
+  Crypt(cryptFormatHash).match(enteredPassword);
+```
+
+### Generating a crypt format hash
+
+To generate a crypt format hash, use `Crypt.sha256` or `Crypt.sha512`
+constructors, and convert it to a String.
 
 ```dart
 import 'package:crypt/crypt.dart';

@@ -27,6 +27,12 @@ import 'package:crypto/crypto.dart' as crypto;
 /// crypt format string and then invoke the [match] method with the value
 /// being tested.
 ///
+/// The value of [cryptographicallySecureSalts] controls if the use of
+/// non-cryptographically secure random number generators are allowed to be
+/// used on platforms that do not have a cryptographically secure random number
+/// generator. A random number generator is needed if random salts are needed
+/// to be generated.
+///
 /// Note: The [hashCode] method has nothing to do with the crypt hashes. It is
 /// a standard method in all Dart objects.
 
@@ -114,7 +120,12 @@ class Crypt {
   /// up to 16 characters. If a longer salt is provided, the extra
   /// characters are ignored. Shorter salts (especially the empty string)
   /// are not recommended, since they reduce the security of the
-  /// generated hash.
+  /// generated hash. An empty string is a valid salt, but obviously should
+  /// not be used.
+  ///
+  /// Throws [UnsupportedError] if a cryptographically secure random number
+  /// is required to generate the salt (i.e. [cryptographicallySecureSalts] is
+  /// true) and it is not supported by the platform this is running on.
 
   Crypt.sha256(String key, {int? rounds, String? salt}) {
     final c = _sha251sha512Algorithm(crypto.sha256, 32, key,
@@ -158,7 +169,12 @@ class Crypt {
   /// up to 16 characters. If a longer salt is provided, the extra
   /// characters are ignored. Shorter salts (especially the empty string)
   /// are not recommended, since they reduce the security of the
-  /// generated hash.
+  /// generated hash. An empty string is a valid salt, but obviously should
+  /// not be used.
+  ///
+  /// Throws [UnsupportedError] if a cryptographically secure random number
+  /// is required to generate the salt (i.e. [cryptographicallySecureSalts] is
+  /// true) and it is not supported by the platform this is running on.
 
   Crypt.sha512(String key, {int? rounds, String? salt}) {
     final c = _sha251sha512Algorithm(crypto.sha512, 64, key,
@@ -228,42 +244,68 @@ class Crypt {
   //================================================================
   // Static members
 
-  /// Requires a cryptographically secure random number generator to be used.
+  //----------------------------------------------------------------
+  /// Controls if non-cryptographically secure random salts are allowed.
   ///
-  /// When true, a cryptographically secure random number
-  /// generator **must** be used when creating randomly generated salts.
-  /// If the _Random.secure_ from the math package is unsupported,
-  /// an [UnsupportedError] will be thrown if attempting to generate a random
-  /// salt.
+  /// If no salt value is provided to [Crypt.sha256] and [Crypt.sha512], a
+  /// salt is randomly generated. This member controls whether the random
+  /// number generator can be non-cryptographically secure or not.
   ///
-  /// When false, allows a non-cryptographically secure random
-  /// number generator, if a cryptographically secure generator is not
-  /// available. But it will use a cryptographically secure random
-  /// number generator (_Random.secure_ from the math package) if it is
-  /// supported; falling back to a cryptographically insecure one
-  /// (_Random_ from the math package) if it is not available.
+  /// If a cryptographically secure random number generator is available,
+  /// it will always be used. This library will never uses a non-cryptographic
+  /// secure one, if a cryptographically secure one is available. This member
+  /// controls what happens if a cryptographically secure random number
+  /// generator is not available: whether to allow fall back to a
+  /// non-cryptographically secure random number generator or to fail.
   ///
-  /// It is recommended to set this to _true_, unless the target platform
-  /// does not support _Random.secure()_.
+  /// If set to false, it will fall back to using a non-cryptographically secure
+  /// random number generator. This is less secure, but it will always be able
+  /// to generate random salts---no matter what platform it is running on.
   ///
-  /// **Note:** The default is currently false, since version 4.0.1 and earlier
-  /// only used the non-cryptographically secure random number generator.
+  /// If set to true, it will never fall back to using a non-cryptographically
+  /// secure random number generator. If a cryptographically secure random
+  /// number generator is not available, those constructors will throw an
+  /// [UnsupportedError] exception. This is more secure, but the will not work
+  /// on all platforms.
+  ///
+  /// This member only has effect on subsequently generated salts.
+  /// Therefore, it should be set _before_ generating salts.
+  ///
+  /// **Recommendation:** Explicitly set the value instead of relying on the
+  /// default value.
+  ///
+  /// The default is currently false, for backward compatibility with
+  /// version 4.0.1 and earlier. Those versions always used a
+  /// non-cryptographically secure random number generator.
+  ///
   /// **A future release may make a breaking change** by setting the default
-  /// to true. To prepare for that change, code should **explicitly(( set this
-  /// to _false_, if it is known that it is running in an environment where the
-  /// cryptographically secure random number generator is not available and it
-  /// is acceptable to use a non-cryptographically secure random number
-  /// generator to generate salts.
+  /// to true. That will ensure better security by default, and programs that
+  /// allow weaker salts must explicitly indicate that.
+  /// On platforms without a cryptographically secure random number
+  /// generator, that will cause programs that previously worked to fail.
+  /// To prepare for that change, programs should **explicitly** set this
+  /// to _false_, if it is acceptable to use a non-cryptographically secure
+  /// random number generator to generate salts. That will ensure those program
+  /// continue to work when the default is changed. The change will have no
+  /// effect on platforms that have cryptographic secure random number
+  /// generators.
 
   static bool cryptographicallySecureSalts = false;
   // TODO: change default to true to improve salt security: breaking change
 
+  //----------------------------------------------------------------
   /// Random number generator used for generating salts
   ///
-  /// Will be set by [_generateSalt] when it is first invoked (to the value
-  /// returned by [_randomNumberGeneratorForSalt]).
+  /// Will be set on first invocation of [_generateSalt].
 
   static Random? _random;
+
+  //----------------------------------------------------------------
+  /// Indicates if [_random] is a secure random number generator or not.
+  ///
+  /// Will be set on first invocation of [_generateSalt].
+
+  static late bool _randomIsSecure;
 
   //================================================================
   // Methods
@@ -588,41 +630,40 @@ class Crypt {
   // Static methods
 
   //----------------------------------------------------------------
-  /// Obtain a random number generator for use in generating random salts.
-  ///
-  /// Returns the object created by _Random.secure()_ or _Random()_.
-  ///
-  /// Throws a [UnsupportedError] if [cryptographicallySecureSalts] is true
-  /// and a cryptographically secure random number generator is not supported.
-
-  static Random _randomNumberGeneratorForSalt() {
-    try {
-      return Random.secure();
-    } on UnsupportedError {
-      if (cryptographicallySecureSalts) {
-        // Cryptographically secure salts are required
-        throw UnsupportedError(
-            'cryptographically secure random number generator unavailable'
-            ': cannot generate salt'
-            ': provide a salt value'
-            ' or set Crypt.cryptographicallySecureSalts=false to allow the use'
-            ' of a non-cryptographically secure random number generator.');
-      }
-      return Random(); // resort to a non-cryptographically secure generator
-    }
-  }
-
-  //----------------------------------------------------------------
   /// Generate a random salt.
   ///
   /// The salt will be [length] randomly selected from the [_saltChars].
+  ///
+  /// Throws [UnsupportedError] if a cryptographically secure random number
+  /// is required (i.e. [cryptographicallySecureSalts] is true) and it is
+  /// not supported by the platform this is running on.
 
   static List<int> _generateSalt(int length) {
-    // Set up random number generator, if this is the first invocation
+    if (_random == null) {
+      // First use of the random number generator: instantiate it
+      try {
+        _random = Random.secure();
+        _randomIsSecure = true;
+      } on UnsupportedError {
+        // Fallback
+        _random = Random(); // a non-cryptographically secure generator
+        _randomIsSecure = false;
+      }
+    }
 
-    _random ??= _randomNumberGeneratorForSalt();
+    // Check suitability of the random number generator
 
-    // Choose random characters.
+    if (cryptographicallySecureSalts && !_randomIsSecure) {
+      // Must be cryptographically secure, but one is not available
+      throw UnsupportedError(
+          'cryptographically secure random number generator unavailable'
+          ': cannot generate salt'
+          ': provide a salt value'
+          ' or set Crypt.cryptographicallySecureSalts=false to allow the use'
+          ' of a non-cryptographically secure random number generator.');
+    }
+
+    // Choose random characters
 
     final saltBytes = <int>[];
     for (var x = 0; x < length; x++) {
