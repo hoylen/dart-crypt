@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.3.0
+
+- Added check to reject a caller provided salt that contain a dollar sign.
+
 ## 4.2.1
 
 - Improved documentation.

@@ -201,7 +201,7 @@ Future main() async {
     //----------------
 
     test('timing', () async {
-      const rounds = 50000;
+      const rounds = 200000;
       final start = DateTime.now();
       final hash =
           Crypt.sha256('p@ssw0rd', rounds: rounds, salt: 'abcdefghijklmnop')
@@ -212,8 +212,27 @@ Future main() async {
       // print('SHA-256: ${rounds} rounds: calculation time=${delay}');
 
       expect(delay, greaterThan(const Duration(milliseconds: 100)),
-          reason: 'Your computer is too fast!');
+          reason: 'Your computer is too fast! Increase the number of rounds.');
       expect(hash, startsWith(r'$5$'));
+    });
+
+    //----------------
+    /// Tests if the implementation rejects "$" in the caller provided salt.
+    ///
+    /// A dollar sign in the salt would cause problems for validators that
+    /// simply split the crypt string on the dollar sign, to obtain all
+    /// the parts.
+
+    test('salt containing dollar sign rejected', () {
+      const badSalt = r'dollar sign $ in salt';
+
+      try {
+        Crypt.sha256('p@ssw0rd', salt: badSalt);
+        fail('dollar sign accepted in salt'); // may cause parsing problems
+      } on ArgumentError catch (ex) {
+        expect(ex.name, equals('salt'));
+        expect(ex.invalidValue, equals(badSalt));
+      }
     });
   });
 }

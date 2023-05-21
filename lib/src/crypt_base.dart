@@ -54,6 +54,8 @@ class Crypt {
   /// incorrect.
 
   Crypt(String cryptFormatStr) {
+    // TODO(any): implement without using split, since salt could contain a $
+
     final parts = cryptFormatStr.split(r'$');
     if ((parts.length == 4 || parts.length == 5) && parts[0].isEmpty) {
       _type = parts[1];
@@ -128,12 +130,14 @@ class Crypt {
   /// generated hash. An empty string is a valid salt, but obviously should
   /// not be used.
   ///
+  /// Throws an [ArgumentError] if the _salt_ contains a dollar sign.
+  ///
   /// Throws [UnsupportedError] if a cryptographically secure random number
   /// is required to generate the salt (i.e. [cryptographicallySecureSalts] is
   /// true) and it is not supported by the platform this is running on.
 
   Crypt.sha256(String key, {int? rounds, String? salt}) {
-    final c = _sha251sha512Algorithm(crypto.sha256, 32, key,
+    final c = _sha256sha512Algorithm(crypto.sha256, 32, key,
         providedRounds: rounds, providedSalt: salt);
 
     final result = StringBuffer();
@@ -177,12 +181,14 @@ class Crypt {
   /// generated hash. An empty string is a valid salt, but obviously should
   /// not be used.
   ///
+  /// Throws an [ArgumentError] if the _salt_ contains a dollar sign.
+  ///
   /// Throws [UnsupportedError] if a cryptographically secure random number
   /// is required to generate the salt (i.e. [cryptographicallySecureSalts] is
   /// true) and it is not supported by the platform this is running on.
 
   Crypt.sha512(String key, {int? rounds, String? salt}) {
-    final c = _sha251sha512Algorithm(crypto.sha512, 64, key,
+    final c = _sha256sha512Algorithm(crypto.sha512, 64, key,
         providedRounds: rounds, providedSalt: salt);
 
     final result = StringBuffer();
@@ -316,9 +322,11 @@ class Crypt {
   // Methods
 
   //----------------------------------------------------------------
-  // Implementation of the algorithm used for SHA-256 and SHA-512 crypt.
+  /// Implementation of the algorithm used for SHA-256 and SHA-512 crypt.
+  ///
+  /// Throws an [ArgumentError] if the _providedSalt_ contains a dollar sign.
 
-  List<int> _sha251sha512Algorithm(
+  List<int> _sha256sha512Algorithm(
       crypto.Hash sha256sha512, int blockSize32or64, String key,
       {int? providedRounds, String? providedSalt}) {
     final valueBytes = List<int>.from(key.codeUnits);
@@ -351,6 +359,11 @@ class Crypt {
       salt = String.fromCharCodes(saltBytes);
     } else {
       // Use provided salt (truncated to the maximum required length)
+
+      if (providedSalt.contains(r'$')) {
+        throw ArgumentError.value(providedSalt, 'salt', r'contains "$" character');
+      }
+
       salt = (providedSalt.length <= _maxShaSaltLength)
           ? providedSalt
           : providedSalt.substring(0, _maxShaSaltLength);

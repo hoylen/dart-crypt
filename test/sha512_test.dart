@@ -151,5 +151,24 @@ Future main() async {
       expect(Crypt.sha512(secret, salt: 'foobar').match(wrong), isFalse);
       expect(Crypt.sha512(secret, salt: '').match(wrong), isFalse);
     });
+
+    //----------------
+    /// Tests if the implementation rejects "$" in the caller provided salt.
+    ///
+    /// A dollar sign in the salt would cause problems for validators that
+    /// simply split the crypt string on the dollar sign, to obtain all
+    /// the parts.
+
+    test('salt containing dollar sign rejected', () {
+      const badSalt = r'dollar sign $ in salt';
+
+      try {
+        Crypt.sha512('p@ssw0rd', salt: badSalt);
+        fail('dollar sign accepted in salt'); // may cause parsing problems
+      } on ArgumentError catch (ex) {
+        expect(ex.name, equals('salt'));
+        expect(ex.invalidValue, equals(badSalt));
+      }
+    });
   });
 }
