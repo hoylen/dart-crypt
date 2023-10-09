@@ -361,7 +361,8 @@ class Crypt {
       // Use provided salt (truncated to the maximum required length)
 
       if (providedSalt.contains(r'$')) {
-        throw ArgumentError.value(providedSalt, 'salt', r'contains "$" character');
+        throw ArgumentError.value(
+            providedSalt, 'salt', r'contains "$" character');
       }
 
       salt = (providedSalt.length <= _maxShaSaltLength)

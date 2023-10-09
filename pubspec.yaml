@@ -1,15 +1,15 @@
 name: crypt
-version: 4.3.0
+version: 4.3.1
 description: One-way string hashing for salted passwords using the Unix crypt format
 homepage: https://github.com/hoylen/dart-crypt
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: '>=2.12.0 <4.0.0'
 
 dependencies:
   crypto: "^3.0.0"
 
 dev_dependencies:
-  lints: ^1.0.1
+  lints: ^2.1.1
   pana: ^0.21.32
   test: ^1.16.3
